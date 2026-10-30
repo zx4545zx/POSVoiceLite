@@ -281,20 +281,20 @@ export function SettingsModal({
                 <span className="text-xs font-bold text-gray-800 block">
                   + เพิ่มเมนูใหม่
                 </span>
-                <div className="flex space-x-2">
+                <div className="flex flex-wrap gap-2">
                   <input
                     type="text"
                     value={newProdName}
                     onChange={(e) => setNewProdName(e.target.value)}
                     placeholder="ชื่อเมนู เช่น ผัดไทย"
-                    className="flex-1 px-3 py-1.5 text-xs bg-white border border-gray-200 rounded-lg focus:outline-none"
+                    className="w-full sm:flex-1 sm:w-auto min-w-0 px-3 py-1.5 text-xs bg-white border border-gray-200 rounded-lg focus:outline-none"
                   />
                   <input
                     type="number"
                     value={newProdPrice}
                     onChange={(e) => setNewProdPrice(e.target.value)}
                     placeholder="ราคา (บาท)"
-                    className="w-24 px-3 py-1.5 text-xs bg-white border border-gray-200 rounded-lg focus:outline-none"
+                    className="flex-1 sm:flex-none sm:w-28 min-w-0 px-3 py-1.5 text-xs bg-white border border-gray-200 rounded-lg focus:outline-none"
                   />
                   <button
                     type="submit"
@@ -311,17 +311,17 @@ export function SettingsModal({
                 {products.map((prod) => (
                   <div
                     key={prod.id}
-                    className="py-2.5 flex items-center justify-between"
+                    className="py-2.5 flex items-center justify-between gap-3"
                   >
-                    <div>
-                      <span className="text-sm font-semibold text-gray-900 block">
+                    <div className="min-w-0">
+                      <span className="text-sm font-semibold text-gray-900 block truncate">
                         {prod.name}
                       </span>
                       <span className="text-xs text-gray-500">
                         รหัส: {prod.id}
                       </span>
                     </div>
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center space-x-2 shrink-0">
                       <span className="text-sm font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md">
                         ฿{prod.price}
                       </span>

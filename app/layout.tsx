@@ -1,5 +1,13 @@
 import type { Metadata, Viewport } from "next";
+import { Kanit } from "next/font/google";
 import "./globals.css";
+
+const kanit = Kanit({
+  subsets: ["thai", "latin"],
+  weight: ["300", "400", "500", "600", "700", "800", "900"],
+  variable: "--font-kanit",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "POS Voice Lite - ระบบขายหน้าร้านสั่งด้วยเสียง",
@@ -31,7 +39,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="th" className="h-full bg-gray-100 antialiased select-none">
+    <html lang="th" className={`${kanit.variable} h-full bg-gray-100 antialiased select-none`}>
       <body className="min-h-full flex flex-col font-sans text-gray-900 bg-gray-100">
         {children}
       </body>

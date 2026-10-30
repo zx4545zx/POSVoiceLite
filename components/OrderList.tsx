@@ -33,12 +33,12 @@ export function OrderList({ items, onUpdateQty, onRemoveItem }: OrderListProps) 
           key={item.id + item.name}
           className="py-3.5 flex items-center justify-between group transition-colors"
         >
-          <div className="flex-1 pr-3">
-            <div className="flex items-baseline justify-between">
-              <span className="font-semibold text-gray-900 text-base leading-snug">
+          <div className="flex-1 min-w-0 pr-3">
+            <div className="flex items-baseline justify-between gap-2">
+              <span className="font-semibold text-gray-900 text-base leading-snug break-words min-w-0">
                 {item.name}
               </span>
-              <span className="text-sm font-bold text-gray-900">
+              <span className="text-sm font-bold text-gray-900 shrink-0">
                 ฿{item.total.toLocaleString()}
               </span>
             </div>
