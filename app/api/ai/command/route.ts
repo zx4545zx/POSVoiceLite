@@ -1,6 +1,6 @@
 import { GoogleGenAI, ThinkingLevel } from "@google/genai";
 import { getCurrentSession } from "@/lib/google/auth";
-import { safeModelQuestion } from "@/lib/nlp/aiReply";
+import { isModelQuestion, safeModelReply } from "@/lib/nlp/aiReply";
 import { PendingAction, POSToolAction, Product } from "@/types/pos";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -168,13 +168,13 @@ export async function POST(req: NextRequest) {
 
     const systemInstruction = `LANGUAGE RULE: Every word you write must be Thai (ภาษาไทย) only. Never answer in English or any other language. ตอบเป็นภาษาไทยเท่านั้น
 
-You are the natural language understanding parser for POS Voice Lite, a voice-controlled mobile POS app for Thai restaurants and shops.
+You are a friendly conversational assistant for POS Voice Lite, a voice-controlled mobile POS app for Thai restaurants and shops. Answer general questions naturally and concisely in Thai, suitable for speaking aloud.
 
-Your job:
-1. Parse the cashier's spoken Thai command into one or more POS tool calls.
+For POS requests:
+1. Interpret the cashier's intent, including indirect or unusual wording, and use the available tool declarations and their descriptions to select the appropriate POS tool calls. Only call tools when the user intends an action or a POS inquiry; ask for clarification if unsure.
 2. Ignore wake phrases like "เฮ้ Gojo", "hey gojo", "น้องโกโจ", "สวัสดี", "น้องครับ" at the start.
-3. NEVER invent prices, order IDs, or bill totals. All prices and math must come from the POS tools.
-4. If the user asks a question or information is missing, ask a very short question in Thai (under 8 words).
+3. NEVER invent store prices, order IDs, or bill totals. All store prices and bill math must come from the POS tools.
+4. If information needed for a POS request is missing, ask a short question in Thai.
 5. Always pass the quantity the cashier said as qty (digits, Thai numerals like ๒, or Thai words like สอง); use 1 only when no number was said.
 6. You cannot change the order yourself. Never say that something was added, removed or done; only the POS tools do that, and the POS reports the result.
 ${pendingContext ? `\nActive Context: ${pendingContext}` : ""}
@@ -193,7 +193,7 @@ Known products in menu: ${productListContext || "ยังไม่มีรา�
     });
 
     const actions: POSToolAction[] = [];
-    let clarifyingQuestion: string | undefined = undefined;
+    let reply: string | undefined;
 
     // Check for tool / function calls in response
     const functionCalls = response.functionCalls;
@@ -206,13 +206,13 @@ Known products in menu: ${productListContext || "ยังไม่มีรา�
         });
       }
     } else {
-      // If no function call, check if model asked a short question in plain text
-      clarifyingQuestion = safeModelQuestion(response.text);
+      reply = safeModelReply(response.text);
     }
 
     return NextResponse.json({
       actions,
-      question: clarifyingQuestion,
+      question: reply,
+      isQuestion: reply ? isModelQuestion(reply) : false,
     });
   } catch (err: unknown) {
     console.error("Gemini AI API error:", err);

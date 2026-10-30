@@ -241,8 +241,8 @@ export default function Home() {
               speak(result.responseText);
             }
           } else if (aiData.question) {
-            // Gemini asked a short clarifying question
-            askedQuestionRef.current = true;
+            // Only keep hands-free listening open when the reply asks for an answer.
+            askedQuestionRef.current = Boolean(aiData.isQuestion);
             setLastResponseText(aiData.question);
             speak(aiData.question);
           } else {

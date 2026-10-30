@@ -10,7 +10,7 @@ Optimized for **iPhone Safari**, **Android Chrome**, and **Mobile PWA**.
 
 - **Push-to-Talk Voice POS**: Tap the microphone, speak natural Thai commands, and see the bill update immediately.
 - **Zero-AI Audio Latency**: Speech-to-Text and Text-to-Speech run 100% on-device using standard **Web Speech API** (`SpeechRecognition` & `speechSynthesis`). No external audio API delay or costs.
-- **AI Tool Calling**: **Gemini Flash** is used strictly for Natural Language Understanding (intent detection, extracting product names, quantities, and selecting typed POS tools). Gemini never controls or calculates prices directly—the POS application is always the source of truth.
+- **AI Conversation & Tool Calling**: Chat in Thai or use natural language for POS commands. The AI receives the available POS tool descriptions to interpret requests; the POS application remains the source of truth for order changes and totals.
 - **Fast Path Local Parser**: Common Thai commands like "คิดเงิน", "ล้างบิล", "ลด 10 บาท", and known products are parsed locally in < 1ms without sending requests to Gemini.
 - **Zero-Config Google Sheets**: User simply logs in with Google OAuth. The app automatically creates a `POS Voice Lite` Google Spreadsheet with `Products`, `Orders`, and `Settings` sheets on Google Drive with minimal `drive.file` scope.
 - **Missing Product Price Flow**: If a customer orders an item not yet in the menu, POS asks: *"กะเพราหมู กี่บาท?"*. When the cashier says *"60 บาท"*, the price is saved to the Google Sheet and added to the cart automatically.
