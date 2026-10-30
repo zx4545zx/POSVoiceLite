@@ -5,6 +5,7 @@ export const metadata: Metadata = {
   title: "POS Voice Lite - ระบบขายหน้าร้านสั่งด้วยเสียง",
   description: "Mobile-first voice-controlled POS web app for Thai shops",
   manifest: "/manifest.webmanifest",
+  verification: { google: "y6W2HeSHE7hGy6yObFoRiH_jMrPqIMGe5I3aVsga9SQ" },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",

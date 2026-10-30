@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { Mic, ArrowRight, ShieldCheck, Sparkles, Table } from "lucide-react";
 import { useState } from "react";
 
@@ -24,9 +25,14 @@ export function LoginScreen({ onLoginDemo, isConfigured }: LoginScreenProps) {
     <div className="min-h-screen bg-gradient-to-b from-emerald-50 via-white to-gray-50 flex flex-col justify-between p-6 max-w-md mx-auto select-none">
       {/* Top Branding */}
       <div className="pt-8 text-center">
-        <div className="w-20 h-20 rounded-3xl bg-emerald-600 text-white flex items-center justify-center mx-auto shadow-xl shadow-emerald-600/30 mb-4 animate-in zoom-in-90 duration-300">
-          <Mic className="w-10 h-10" />
-        </div>
+        <Image
+          src="/logo.png"
+          alt="POS Voice Lite"
+          width={112}
+          height={112}
+          priority
+          className="mx-auto mb-4 animate-in zoom-in-90 duration-300"
+        />
         <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">
           POS Voice Lite
         </h1>

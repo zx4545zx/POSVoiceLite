@@ -1,10 +1,10 @@
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, ThinkingLevel } from "@google/genai";
 import { getCurrentSession } from "@/lib/google/auth";
 import { PendingAction, POSToolAction, Product } from "@/types/pos";
 import { NextRequest, NextResponse } from "next/server";
 
 const apiKey = process.env.GEMINI_API_KEY || "";
-const modelName = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+const modelName = process.env.GEMINI_MODEL || "gemma-4-26b-a4b-it";
 
 const functionDeclarations = [
   {
@@ -106,9 +106,26 @@ const functionDeclarations = [
 const MAX_MESSAGE_LENGTH = 300;
 const MAX_PRODUCTS = 200;
 
+// ponytail: per-instance memory; use a shared store (Upstash/KV) if you scale to many instances
+const RATE_LIMIT = 20;
+const RATE_WINDOW_MS = 60_000;
+const hits = new Map<string, number[]>();
+
+function isRateLimited(userId: string): boolean {
+  const now = Date.now();
+  const recent = (hits.get(userId) ?? []).filter((t) => now - t < RATE_WINDOW_MS);
+  recent.push(now);
+  hits.set(userId, recent);
+  return recent.length > RATE_LIMIT;
+}
+
 export async function POST(req: NextRequest) {
-  if (!(await getCurrentSession())) {
+  const session = await getCurrentSession();
+  if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  if (isRateLimited(session.user.id)) {
+    return NextResponse.json({ error: "ส่งคำสั่งถี่เกินไป รอสักครู่" }, { status: 429 });
   }
 
   try {
@@ -124,7 +141,7 @@ export async function POST(req: NextRequest) {
     } = body;
 
     if (!message || typeof message !== "string" || message.length > MAX_MESSAGE_LENGTH) {
-      return NextResponse.json({ error: "Invalid message" }, { status: 400 });
+      return NextResponse.json({ error: "ข้อความไม่ถูกต้อง" }, { status: 400 });
     }
 
     if (!apiKey) {
@@ -148,7 +165,9 @@ export async function POST(req: NextRequest) {
       pendingContext = `The cashier is currently waiting for the price of "${pendingAction.productName}" (qty: ${pendingAction.qty}). If the user says a price like "60" or "60 บาท", call setProductPrice(name: "${pendingAction.productName}", price: 60) and then addItem(name: "${pendingAction.productName}", qty: ${pendingAction.qty}).`;
     }
 
-    const systemInstruction = `You are the natural language understanding parser for POS Voice Lite, a voice-controlled mobile POS app for Thai restaurants and shops.
+    const systemInstruction = `LANGUAGE RULE: Every word you write must be Thai (ภาษาไทย) only. Never answer in English or any other language. ตอบเป็นภาษาไทยเท่านั้น
+
+You are the natural language understanding parser for POS Voice Lite, a voice-controlled mobile POS app for Thai restaurants and shops.
 
 Your job:
 1. Parse the cashier's spoken Thai command into one or more POS tool calls.
@@ -163,6 +182,8 @@ Known products in menu: ${productListContext || "ยังไม่มีรา�
       contents: message,
       config: {
         systemInstruction,
+        // Intent parsing needs no reasoning; default thinking made Gemma ~3x slower (6s vs 2s)
+        thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL },
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         tools: [{ functionDeclarations } as any],
       },
@@ -195,6 +216,6 @@ Known products in menu: ${productListContext || "ยังไม่มีรา�
     });
   } catch (err: unknown) {
     console.error("Gemini AI API error:", err);
-    return NextResponse.json({ actions: [], error: "AI interpretation error" });
+    return NextResponse.json({ actions: [], error: "ระบบ AI ขัดข้อง ลองใหม่อีกครั้ง" });
   }
 }

@@ -147,6 +147,16 @@ export async function getValidAccessToken(
         const refreshed = await refreshAccessToken(session.refreshToken);
         session.accessToken = refreshed.access_token;
         session.expiresAt = now + refreshed.expires_in * 1000;
+        // Persist so later requests don't refresh again (no-op if cookies are read-only here)
+        try {
+          (await cookies()).set(COOKIE_NAME, await signSession(session), {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "lax",
+            maxAge: 30 * 24 * 60 * 60,
+            path: "/",
+          });
+        } catch {}
         return refreshed.access_token;
       } catch (e) {
         console.error("Token refresh failed:", e);
