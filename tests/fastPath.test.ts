@@ -371,3 +371,31 @@ describe("cumulative speech results", () => {
     assert.equal(tail, "น้องครับ กะเพราหมู 2");
   });
 });
+
+describe("price answers while waiting for a price", () => {
+  const waiting = { type: "WAITING_PRODUCT_PRICE" as const, productName: "ข้าวผัดต้มยำกุ้ง", qty: 1 };
+  const ask = (text: string) => parseFastPath(text, waiting, []);
+
+  test("a bare number equal to the ordered quantity is not the price", () => {
+    const r = ask("1");
+    assert.equal(r?.ignore, true);
+    assert.deepEqual(r?.actions, []);
+  });
+
+  test("an explicit price still works, even when it equals the quantity", () => {
+    assert.equal((ask("1 บาท")?.actions[0] as { args: { price: number } }).args.price, 1);
+    assert.equal((ask("ราคา 1")?.actions[0] as { args: { price: number } }).args.price, 1);
+  });
+
+  test("normal answers work in digits and Thai words", () => {
+    assert.equal((ask("50 บาท")?.actions[0] as { args: { price: number } }).args.price, 50);
+    assert.equal((ask("60")?.actions[0] as { args: { price: number } }).args.price, 60);
+    assert.equal((ask("ห้าสิบ")?.actions[0] as { args: { price: number } }).args.price, 50);
+  });
+
+  test("a new order is not mistaken for a price just because it contains a digit", () => {
+    const r = ask("โค้ก 2");
+    assert.notEqual(r?.matchedRule, "pending_price_response");
+    assert.equal((r?.actions[0] as { tool: string } | undefined)?.tool, "addItem");
+  });
+});

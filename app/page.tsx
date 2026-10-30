@@ -33,6 +33,9 @@ import {
 } from "@/lib/pos/orderEngine";
 import { DEFAULT_WAKE_WORDS, extractWakeCommand, parseFastPath } from "@/lib/nlp/fastPath";
 
+/** Speech arriving this soon after a price question is the tail of the order, not the answer */
+const PRICE_ANSWER_GRACE_MS = 1500;
+
 export default function Home() {
   // Session & Auth state
   const [session, setSession] = useState<UserSession | null>(null);
@@ -63,10 +66,17 @@ export default function Home() {
   const cartRef = useRef(cart);
   const productsRef = useRef(products);
   const pendingActionRef = useRef(pendingAction);
+  const pendingSinceRef = useRef(0); // when the current price question appeared
+  const pendingNameRef = useRef<string | null>(null);
   useEffect(() => {
     cartRef.current = cart;
     productsRef.current = products;
     pendingActionRef.current = pendingAction;
+    const pendingName = pendingAction?.productName ?? null;
+    if (pendingName !== pendingNameRef.current) {
+      pendingNameRef.current = pendingName;
+      if (pendingName) pendingSinceRef.current = Date.now();
+    }
   });
 
   // Text to Speech
@@ -118,6 +128,8 @@ export default function Home() {
   const processCommand = useCallback(
     async (rawCommand: string) => {
       if (!rawCommand) return;
+      // Right after "X กี่บาท?" speech is still the tail of the order, not an answer (the user hasn't heard the question yet)
+      if (pendingActionRef.current && Date.now() - pendingSinceRef.current < PRICE_ANSWER_GRACE_MS) return;
       askedQuestionRef.current = false;
       setIsProcessing(true);
       setProcessingCommand(rawCommand);
@@ -133,6 +145,8 @@ export default function Home() {
           currentPending,
           currentProducts
         );
+
+        if (fastResult?.ignore) return;
 
         if (fastResult && fastResult.actions.length > 0) {
           // Fast Path Matched! Execute POS Tool actions locally

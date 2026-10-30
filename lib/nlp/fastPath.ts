@@ -172,6 +172,8 @@ const CLASSIFIERS = [
 
 export interface FastPathResult {
   actions: POSToolAction[];
+  /** Recognised but deliberately not acted on (e.g. a stray quantity while a price is awaited) */
+  ignore?: boolean;
   confidence: "high" | "medium";
   matchedRule: string;
 }
@@ -193,7 +195,15 @@ export function parseFastPath(
   if (pendingAction && pendingAction.type === "WAITING_PRODUCT_PRICE") {
     // Strip words like "บาท", "ราคา", "เอา"
     const priceText = cleaned.replace(/(บาท|ราคา|เอา|คิด|แค่)/g, "").trim();
-    const price = parseThaiNumber(priceText);
+    // The answer must be just a number: parseThaiNumber reads digits anywhere ("โค้ก 2" -> 2), which made any
+    // phrase with a digit a price
+    const numberOnly = /^\d+(\.\d+)?$/.test(priceText) || (!/\d/.test(priceText) && parseThaiNumber(priceText) !== null);
+    const price = numberOnly ? parseThaiNumber(priceText) : null;
+    // A bare number equal to the quantity just ordered is the tail of that order ("ข้าวผัด" | "1"), not a price;
+    // an explicit "บาท"/"ราคา" still makes it one
+    if (price !== null && price === pendingAction.qty && !/(บาท|ราคา|แค่)/.test(cleaned)) {
+      return { actions: [], confidence: "high", matchedRule: "pending_price_ignored_qty_echo", ignore: true };
+    }
     if (price !== null && price > 0) {
       return {
         actions: [
