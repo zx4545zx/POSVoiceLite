@@ -416,16 +416,18 @@ export default function Home() {
 
   // 3. Main Voice POS Interface
   return (
-    <main className="min-h-screen max-w-md mx-auto bg-white flex flex-col justify-between shadow-2xl overflow-hidden relative">
+    <main className="min-h-dvh w-full max-w-md md:max-w-2xl lg:max-w-5xl mx-auto bg-white flex flex-col justify-between lg:grid lg:grid-cols-[1fr_400px] lg:grid-rows-[auto_1fr] lg:justify-normal shadow-2xl overflow-hidden relative">
       {/* Header with shop name & settings */}
-      <Header
-        shopName={settings.shopName}
-        session={session}
-        onOpenSettings={() => setIsSettingsOpen(true)}
-      />
+      <div className="lg:col-span-2">
+        <Header
+          shopName={settings.shopName}
+          session={session}
+          onOpenSettings={() => setIsSettingsOpen(true)}
+        />
+      </div>
 
       {/* Main Order Items View */}
-      <div className="flex-1 flex flex-col overflow-hidden relative">
+      <div className="flex-1 flex flex-col overflow-hidden relative lg:row-start-2">
         <OrderList
           items={cart.items}
           onUpdateQty={handleUpdateQty}
@@ -449,6 +451,8 @@ export default function Home() {
         />
       </div>
 
+      {/* Right column on desktop: summary + controls */}
+      <div className="flex flex-col lg:row-start-2 lg:col-start-2 lg:border-l lg:border-gray-100 lg:justify-end">
       {/* Cart Summary */}
       <OrderSummary cart={cart} />
 
@@ -471,6 +475,7 @@ export default function Home() {
         onToggleKeyboard={() => setIsKeyboardOpen((prev) => !prev)}
         isKeyboardOpen={isKeyboardOpen}
       />
+      </div>
 
       {/* Settings Modal */}
       <SettingsModal
