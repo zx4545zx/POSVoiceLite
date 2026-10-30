@@ -102,15 +102,17 @@ export function LoginScreen({ onLoginDemo, isConfigured }: LoginScreenProps) {
           </div>
         )}
 
-        <button
-          type="button"
-          onClick={handleDemo}
-          disabled={loadingDemo}
-          className="w-full py-3.5 bg-gray-100 hover:bg-gray-200 active:scale-98 text-gray-800 font-semibold text-sm rounded-2xl transition-all flex items-center justify-center space-x-1.5"
-        >
-          <span>{loadingDemo ? "กำลังเข้าสู่ระบบ..." : "ทดลองใช้งานทันที (Demo)"}</span>
-          <ArrowRight className="w-4 h-4 text-gray-500" />
-        </button>
+        {!isConfigured && (
+          <button
+            type="button"
+            onClick={handleDemo}
+            disabled={loadingDemo}
+            className="w-full py-3.5 bg-gray-100 hover:bg-gray-200 active:scale-98 text-gray-800 font-semibold text-sm rounded-2xl transition-all flex items-center justify-center space-x-1.5"
+          >
+            <span>{loadingDemo ? "กำลังเข้าสู่ระบบ..." : "ทดลองใช้งานทันที (Demo)"}</span>
+            <ArrowRight className="w-4 h-4 text-gray-500" />
+          </button>
+        )}
 
         <div className="flex items-center justify-center space-x-1 text-[11px] text-gray-400 pt-1">
           <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
