@@ -116,6 +116,11 @@ export function LoginScreen({ onLoginDemo, isConfigured }: LoginScreenProps) {
           <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
           <span>ขอสิทธิ์เฉพาะ Google Drive ไฟล์ที่สร้างโดยแอพนี้เท่านั้น</span>
         </div>
+
+        <div className="flex items-center justify-center space-x-3 text-[11px] text-gray-400">
+          <a href="/privacy" className="underline">นโยบายความเป็นส่วนตัว</a>
+          <a href="/terms" className="underline">ข้อกำหนดการใช้งาน</a>
+        </div>
       </div>
     </div>
   );
