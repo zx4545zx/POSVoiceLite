@@ -1,6 +1,6 @@
 import { GoogleGenAI, ThinkingLevel } from "@google/genai";
 import { getCurrentSession } from "@/lib/google/auth";
-import { isModelQuestion, safeModelReply } from "@/lib/nlp/aiReply";
+import { allowedAiActions, isModelQuestion, safeModelReply } from "@/lib/nlp/aiReply";
 import { validHistory } from "@/lib/nlp/conversation";
 import { PendingAction, POSToolAction, Product } from "@/types/pos";
 import { NextRequest, NextResponse } from "next/server";
@@ -184,7 +184,8 @@ For POS requests:
 3. NEVER invent store prices, order IDs, or bill totals. All store prices and bill math must come from the POS tools.
 4. If information needed for a POS request is missing, ask a short question in Thai.
 5. Always pass the quantity the cashier said as qty (digits, Thai numerals like ๒, or Thai words like สอง); use 1 only when no number was said.
-6. You cannot change the order yourself. Never say that something was added, removed or done; only the POS tools do that, and the POS reports the result.
+6. Never call setProductPrice unless the cashier clearly said a price for that product (a number with บาท/ราคา, or an answer to the price question below). A quantity is not a price: for new products without a price, just call addItem and the POS will ask for the price.
+7. You cannot change the order yourself. Never say that something was added, removed or done; only the POS tools do that, and the POS reports the result.
 ${pendingContext ? `\nActive Context: ${pendingContext}` : ""}
 Known products in menu: ${productListContext || "ยังไม่มีรายการที่บันทึก"}`;
 
@@ -221,7 +222,7 @@ Known products in menu: ${productListContext || "ยังไม่มีรา�
     }
 
     return NextResponse.json({
-      actions,
+      actions: allowedAiActions(actions, message, pendingAction),
       question: reply,
       isQuestion: reply ? isModelQuestion(reply) : false,
     });
