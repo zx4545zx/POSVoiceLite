@@ -45,6 +45,8 @@ export interface UseSpeechRecognitionOptions {
   lang?: string;
   /** Keep the mic open: restart recognition whenever the browser ends it */
   alwaysOn?: boolean;
+  /** Drop recognition results while this returns true (e.g. our own TTS is playing) */
+  shouldIgnore?: () => boolean;
   onResult?: (transcript: string) => void;
   onError?: (error: string) => void;
 }
@@ -52,6 +54,7 @@ export interface UseSpeechRecognitionOptions {
 export function useSpeechRecognition({
   lang = "th-TH",
   alwaysOn = false,
+  shouldIgnore,
   onResult,
   onError,
 }: UseSpeechRecognitionOptions = {}) {
@@ -69,7 +72,9 @@ export function useSpeechRecognition({
   const onResultRef = useRef(onResult);
   const onErrorRef = useRef(onError);
   const alwaysOnRef = useRef(alwaysOn);
+  const shouldIgnoreRef = useRef(shouldIgnore);
   useEffect(() => {
+    shouldIgnoreRef.current = shouldIgnore;
     onResultRef.current = onResult;
     onErrorRef.current = onError;
     alwaysOnRef.current = alwaysOn;
@@ -139,6 +144,10 @@ export function useSpeechRecognition({
 
       recognition.onresult = (event: SpeechRecognitionEventLike) => {
         clearTimeout(silenceTimer);
+        if (shouldIgnoreRef.current?.()) {
+          setInterimTranscript("");
+          return;
+        }
         let pending: { index: number; text: string } | null = null;
 
         for (let i = event.resultIndex; i < event.results.length; i++) {

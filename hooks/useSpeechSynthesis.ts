@@ -11,24 +11,33 @@ export function useSpeechSynthesis({
   voiceEnabled = true,
   lang = "th-TH",
 }: UseSpeechSynthesisOptions = {}) {
-  const lastSpeakAtRef = useRef(0);
+  // The mic must not treat our own voice as a command (that loops: "เพิ่ม X แล้ว" -> heard -> add X again).
+  // We don't trust `speechSynthesis.speaking` (it can stick, e.g. iOS Safari): mute from speak() for an estimated
+  // duration, and when the utterance really ends keep a short tail for echo/late recognition.
+  const mutedUntilRef = useRef(0);
+  const lastSpokenRef = useRef({ text: "", at: 0 });
 
-  /** True while our own TTS is likely playing. Capped at 8s because `speaking` can stick on some browsers (iOS Safari). */
-  const isSpeaking = useCallback(
-    () =>
-      typeof window !== "undefined" &&
-      "speechSynthesis" in window &&
-      window.speechSynthesis.speaking &&
-      Date.now() - lastSpeakAtRef.current < 8000,
-    []
-  );
+  /** True while our own TTS is playing, or just ended */
+  const isSpeaking = useCallback(() => Date.now() < mutedUntilRef.current, []);
+
+  /** Did the mic probably just hear our own confirmation? (our replies end in แล้ว/เรียบร้อย; commands never do) */
+  const isOwnEcho = useCallback((heard: string) => {
+    if (/(แล้ว|เรียบร้อย)\s*$/.test(heard.trim())) return true;
+    const { text, at } = lastSpokenRef.current;
+    if (Date.now() - at > 5000) return false;
+    const norm = (s: string) => s.replace(/[\s.,?!“”"]/g, "");
+    const h = norm(heard);
+    const s = norm(text);
+    return h.length >= 3 && s.includes(h) && h.length >= s.length * 0.8;
+  }, []);
 
   const speak = useCallback(
     (text: string) => {
       if (!voiceEnabled || !text || typeof window === "undefined" || !("speechSynthesis" in window)) {
         return;
       }
-      lastSpeakAtRef.current = Date.now();
+      mutedUntilRef.current = Date.now() + Math.min(8000, 1500 + text.length * 120);
+      lastSpokenRef.current = { text, at: Date.now() };
 
       try {
         // Cancel any pending or ongoing speech immediately to stay responsive
@@ -45,6 +54,12 @@ export function useSpeechSynthesis({
         if (thaiVoice) {
           utterance.voice = thaiVoice;
         }
+
+        const unmuteSoon = () => {
+          mutedUntilRef.current = Date.now() + 1500;
+        };
+        utterance.onend = unmuteSoon;
+        utterance.onerror = unmuteSoon;
 
         window.speechSynthesis.speak(utterance);
       } catch (err) {
@@ -64,5 +79,6 @@ export function useSpeechSynthesis({
     speak,
     stop,
     isSpeaking,
+    isOwnEcho,
   };
 }

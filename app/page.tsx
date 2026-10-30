@@ -68,7 +68,7 @@ export default function Home() {
   });
 
   // Text to Speech
-  const { speak, isSpeaking } = useSpeechSynthesis({
+  const { speak, isSpeaking, isOwnEcho } = useSpeechSynthesis({
     voiceEnabled: settings.voiceEnabled,
     lang: settings.language || "th-TH",
   });
@@ -319,6 +319,7 @@ export default function Home() {
   } = useSpeechRecognition({
     lang: settings.language || "th-TH",
     alwaysOn: wakeMode,
+    shouldIgnore: () => wakeModeRef.current && isSpeaking(),
     onError: (err) => {
       if (err === "not-allowed" || err === "service-not-allowed") changeWakeMode(false);
     },
@@ -328,7 +329,7 @@ export default function Home() {
         return;
       }
       // Ignore our own TTS being picked up by the mic
-      if (isSpeaking()) return;
+      if (isSpeaking() || isOwnEcho(finalText)) return;
       const afterWake = extractWakeCommand(finalText, wakeWords);
       const inSession = Date.now() < sessionUntilRef.current;
       if (afterWake === null && !inSession) {
