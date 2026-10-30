@@ -2,16 +2,21 @@
 export const SPEECH_END_MS = 1200;
 /** Longer pause when the phrase looks unfinished, e.g. "เพิ่มผักกระเพรา" said before the quantity */
 export const SPEECH_WAIT_MORE_MS = 2500;
+/** When the browser has already declared the text final it has waited for a pause itself, so wait less */
+export const FINAL_COMPLETE_MS = 250;
+export const FINAL_WAIT_MORE_MS = 1500;
 
 const LOOKS_COMPLETE =
   /(\d|[๐-๙]|ศูนย์|หนึ่ง|เอ็ด|สอง|สาม|สี่|ห้า|หก|เจ็ด|แปด|เก้า|สิบ|ร้อย|พัน|บาท|จาน|ชาม|แก้ว|ขวด|กล่อง|ถุง|ชุด|ที่|อัน|ชิ้น|ฟอง|รายการ|ห่อ|ถ้วย|คิดเงิน|ปิดบิล|เช็คบิล|เก็บเงิน|ชำระเงิน|ล้างบิล|เคลียร์|ยกเลิก|เท่าไหร่|เท่าไร|ออก|ด้วย|ครับ|ค่ะ|คะ|นะ|จ้า|หน่อย)\s*$/;
 
 /**
- * How long to wait after the last interim text before committing it. People often pause before saying the
+ * How long to wait after the last result before acting on it. People often pause before saying the
  * quantity, so a phrase that doesn't end in a number, classifier or known command word waits longer.
  */
-export function endpointDelay(text: string): number {
-  return LOOKS_COMPLETE.test(text.trim()) ? SPEECH_END_MS : SPEECH_WAIT_MORE_MS;
+export function endpointDelay(text: string, browserSaidFinal = false): number {
+  const complete = LOOKS_COMPLETE.test(text.trim());
+  if (browserSaidFinal) return complete ? FINAL_COMPLETE_MS : FINAL_WAIT_MORE_MS;
+  return complete ? SPEECH_END_MS : SPEECH_WAIT_MORE_MS;
 }
 
 /**
@@ -22,4 +27,24 @@ export function endpointDelay(text: string): number {
 export function tailAfter(committed: string | undefined, text: string): string {
   if (!committed) return text;
   return text.startsWith(committed) ? text.slice(committed.length) : "";
+}
+
+export interface SpeechResultLike {
+  text: string;
+  isFinal: boolean;
+}
+
+/**
+ * Merge every not-yet-sent result of the session into one utterance. Browsers split a sentence into
+ * several results at short pauses ("เพิ่มผัดกระเพรา" | "2"); acting on each piece separately loses the quantity.
+ */
+export function collectUnsent(results: SpeechResultLike[], sent: Map<number, string>) {
+  let tail = "";
+  const snapshot: [number, string][] = [];
+  results.forEach((r, i) => {
+    if (!r) return;
+    snapshot.push([i, r.text]);
+    tail += tailAfter(sent.get(i), r.text);
+  });
+  return { tail, snapshot, lastIsFinal: results.length > 0 && !!results[results.length - 1]?.isFinal };
 }

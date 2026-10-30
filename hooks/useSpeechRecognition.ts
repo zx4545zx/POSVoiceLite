@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback, useSyncExternalStore } from "react";
-import { endpointDelay, tailAfter } from "@/lib/nlp/endpointing";
+import { collectUnsent, endpointDelay } from "@/lib/nlp/endpointing";
 
 // Types for Web Speech API
 interface SpeechRecognitionEventLike {
@@ -92,6 +92,7 @@ export function useSpeechRecognition({
     // Our own end-of-phrase detection (see lib/nlp/endpointing.ts): resultIndex -> text already handed on
     const committed = new Map<number, string>();
     let silenceTimer: ReturnType<typeof setTimeout> | undefined;
+    let pending: { tail: string; snapshot: [number, string][] } | null = null;
     const emit = (text: string) => {
       const t = text.trim();
       if (!t) return;
@@ -101,26 +102,44 @@ export function useSpeechRecognition({
     };
     try {
       const recognition = new SpeechRecognitionClass();
-      // Hands-free: one long session instead of reopening the mic after every phrase (gaps lose speech)
-      recognition.continuous = alwaysOnRef.current;
+      // Always continuous: we decide when the phrase ends (the browser's own cut-off is too eager and splits
+      // "เพิ่มผักกระเพรา" from its quantity). Push-to-talk stops the session itself once the phrase is handed on.
+      recognition.continuous = true;
       recognition.interimResults = true;
       recognition.lang = lang;
 
+      // Hand on everything not yet sent, as one utterance
+      const flush = () => {
+        clearTimeout(silenceTimer);
+        if (!pending) return;
+        const { tail, snapshot } = pending;
+        pending = null;
+        snapshot.forEach(([i, t]) => committed.set(i, t));
+        emit(tail);
+        if (!alwaysOnRef.current) {
+          try {
+            recognition.stop();
+          } catch {
+            // already stopped
+          }
+        }
+      };
+
       recognition.onstart = () => {
         committed.clear();
+        pending = null;
         setIsListening(true);
         setErrorMessage(null);
       };
 
       recognition.onend = () => {
-        clearTimeout(silenceTimer);
+        flush(); // the session is over, nothing more can be added to the pending phrase
         setIsListening(false);
         // Browsers end recognition after each phrase/silence; reopen the mic while hands-free is on
         if (alwaysOnRef.current && !disposed) {
           setTimeout(() => {
             if (!alwaysOnRef.current || disposed) return;
             try {
-              recognition.continuous = true;
               recognition.start();
             } catch {
               // already started
@@ -145,32 +164,23 @@ export function useSpeechRecognition({
       recognition.onresult = (event: SpeechRecognitionEventLike) => {
         clearTimeout(silenceTimer);
         if (shouldIgnoreRef.current?.()) {
+          pending = null;
           setInterimTranscript("");
           return;
         }
-        let pending: { index: number; text: string } | null = null;
-
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          const item = event.results[i];
-          const text = item[0].transcript;
-          if (item.isFinal) {
-            emit(tailAfter(committed.get(i), text));
-            committed.delete(i);
-          } else {
-            pending = { index: i, text };
-          }
+        const results = Array.from({ length: event.results.length }, (_, i) => {
+          const r = event.results[i];
+          return r ? { text: r[0].transcript, isFinal: r.isFinal } : undefined;
+        }) as { text: string; isFinal: boolean }[];
+        const { tail, snapshot, lastIsFinal } = collectUnsent(results, committed);
+        if (!tail.trim()) {
+          pending = null;
+          setInterimTranscript("");
+          return;
         }
-
-        if (pending) {
-          const { index, text } = pending;
-          const pendingTail = tailAfter(committed.get(index), text);
-          setInterimTranscript(pendingTail);
-          // Browsers can take seconds to mark a phrase final (esp. continuous mode): a pause means it ended
-          silenceTimer = setTimeout(() => {
-            committed.set(index, text);
-            emit(pendingTail);
-          }, endpointDelay(pendingTail));
-        }
+        pending = { tail, snapshot };
+        setInterimTranscript(tail);
+        silenceTimer = setTimeout(flush, endpointDelay(tail, lastIsFinal));
       };
 
       recognitionRef.current = recognition;
@@ -215,7 +225,6 @@ export function useSpeechRecognition({
     const rec = recognitionRef.current;
     if (!rec) return;
     try {
-      rec.continuous = alwaysOn;
       if (alwaysOn) rec.start();
       else rec.abort();
     } catch {

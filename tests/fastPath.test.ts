@@ -7,7 +7,7 @@ import {
   extractWakeCommand,
   parseWakeWords,
 } from "../lib/nlp/fastPath";
-import { endpointDelay, SPEECH_END_MS, SPEECH_WAIT_MORE_MS, tailAfter } from "../lib/nlp/endpointing";
+import { collectUnsent, endpointDelay, FINAL_COMPLETE_MS, FINAL_WAIT_MORE_MS, SPEECH_END_MS, SPEECH_WAIT_MORE_MS, tailAfter } from "../lib/nlp/endpointing";
 import { Product } from "../types/pos";
 
 describe("Thai Number Parser", () => {
@@ -284,5 +284,33 @@ describe("adaptive endpoint delay", () => {
     for (const done of ["เพิ่มผักกระเพรา 2", "เพิ่มผักกระเพราสอง", "คิดเงิน", "ล้างบิลด้วยครับ", "ผักกระเพรา 2 จาน", "60 บาท"]) {
       assert.equal(endpointDelay(done), SPEECH_END_MS, done);
     }
+  });
+});
+
+describe("merging split speech results", () => {
+  test("a quantity that arrives as its own result joins the phrase", () => {
+    const { tail, lastIsFinal } = collectUnsent(
+      [{ text: "น้องครับเพิ่มผัดกระเพรา", isFinal: true }, { text: "2", isFinal: false }],
+      new Map()
+    );
+    assert.equal(tail, "น้องครับเพิ่มผัดกระเพรา2");
+    assert.equal(lastIsFinal, false);
+  });
+
+  test("already-sent results are skipped, new ones kept", () => {
+    const sent = new Map([[0, "น้องครับ คิดเงิน"]]);
+    const { tail, snapshot } = collectUnsent(
+      [{ text: "น้องครับ คิดเงิน", isFinal: true }, { text: "โค้ก 1", isFinal: true }],
+      sent
+    );
+    assert.equal(tail, "โค้ก 1");
+    assert.deepEqual(snapshot.map(([i]) => i), [0, 1]);
+  });
+
+  test("browser-final text waits less, unless it still looks unfinished", () => {
+    assert.equal(endpointDelay("เพิ่มโค้ก 2", true), FINAL_COMPLETE_MS);
+    assert.equal(endpointDelay("เพิ่มโค้ก", true), FINAL_WAIT_MORE_MS);
+    assert.equal(endpointDelay("เพิ่มโค้ก", false), SPEECH_WAIT_MORE_MS);
+    assert.equal(endpointDelay("เพิ่มโค้ก 2", false), SPEECH_END_MS);
   });
 });
