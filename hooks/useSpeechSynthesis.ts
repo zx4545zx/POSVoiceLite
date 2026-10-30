@@ -16,6 +16,7 @@ export function useSpeechSynthesis({
   // duration, and when the utterance really ends keep a short tail for echo/late recognition.
   const mutedUntilRef = useRef(0);
   const lastSpokenRef = useRef({ text: "", at: 0 });
+  const utteranceIdRef = useRef(0);
 
   /** True while our own TTS is playing, or just ended */
   const isSpeaking = useCallback(() => Date.now() < mutedUntilRef.current, []);
@@ -55,8 +56,11 @@ export function useSpeechSynthesis({
           utterance.voice = thaiVoice;
         }
 
+        // A cancelled utterance fires onerror after the next one has started: only the latest may unmute
+        const id = ++utteranceIdRef.current;
+        const echoTail = Math.min(1500, 400 + text.length * 40);
         const unmuteSoon = () => {
-          mutedUntilRef.current = Date.now() + 1500;
+          if (id === utteranceIdRef.current) mutedUntilRef.current = Date.now() + echoTail;
         };
         utterance.onend = unmuteSoon;
         utterance.onerror = unmuteSoon;

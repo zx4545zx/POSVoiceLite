@@ -7,6 +7,8 @@ interface VoiceFeedbackBarProps {
   interimTranscript: string;
   responseText: string;
   isProcessing: boolean;
+  /** The phrase being worked on, shown while thinking */
+  processingText?: string;
   errorMessage: string | null;
 }
 
@@ -15,6 +17,7 @@ export function VoiceFeedbackBar({
   interimTranscript,
   responseText,
   isProcessing,
+  processingText,
   errorMessage,
 }: VoiceFeedbackBarProps) {
   const currentHeard = interimTranscript || transcript;
@@ -30,9 +33,17 @@ export function VoiceFeedbackBar({
 
   if (isProcessing) {
     return (
-      <div className="mx-4 mb-2 p-2.5 bg-brand-50 border border-brand-150 text-brand-800 text-xs rounded-xl flex items-center justify-center space-x-2 animate-pulse">
-        <Sparkles className="w-3.5 h-3.5 text-brand-600 animate-spin" />
-        <span className="font-medium">กำลังประมวลผลคำสั่ง...</span>
+      <div role="status" aria-live="polite" className="mx-4 mb-2 p-2.5 bg-brand-50 border border-brand-150 text-brand-800 text-xs rounded-xl flex flex-col gap-1">
+        {processingText && (
+          <div className="flex items-center space-x-2 min-w-0">
+            <span className="text-brand-700/70 shrink-0">ได้ยิน:</span>
+            <span className="font-semibold truncate">&ldquo;{processingText}&rdquo;</span>
+          </div>
+        )}
+        <div className="flex items-center justify-center space-x-2 animate-pulse">
+          <Sparkles className="w-3.5 h-3.5 text-brand-600 animate-spin" />
+          <span className="font-medium">แป๊บนะ… กำลังคิด</span>
+        </div>
       </div>
     );
   }

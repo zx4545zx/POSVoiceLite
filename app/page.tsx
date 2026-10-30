@@ -52,6 +52,7 @@ export default function Home() {
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
   const [lastResponseText, setLastResponseText] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [processingCommand, setProcessingCommand] = useState("");
   const [completedOrder, setCompletedOrder] = useState<Order | null>(null);
 
   // UI Modals
@@ -119,6 +120,7 @@ export default function Home() {
       if (!rawCommand) return;
       askedQuestionRef.current = false;
       setIsProcessing(true);
+      setProcessingCommand(rawCommand);
 
       const currentCart = cartRef.current;
       const currentProducts = productsRef.current;
@@ -174,7 +176,9 @@ export default function Home() {
           return;
         }
 
-        // Step 2: Uncertain -> Call Gemini AI Tool Calling endpoint
+        // Step 2: Uncertain -> Call Gemini AI Tool Calling endpoint (slow, so say "one moment" first;
+        // the bar shows "กำลังคิด" while we wait and the result replaces it)
+        speak("แป๊บนะ");
         const aiRes = await fetch("/api/ai/command", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -237,6 +241,7 @@ export default function Home() {
         setLastResponseText("เกิดข้อผิดพลาดในการประมวลผล");
       } finally {
         setIsProcessing(false);
+        setProcessingCommand("");
       }
     },
     [speak]
@@ -249,7 +254,6 @@ export default function Home() {
   const [wakeActive, setWakeActive] = useState(false);
   const [lastHeard, setLastHeard] = useState("");
   const wakeWords = settings.wakeWords?.length ? settings.wakeWords : DEFAULT_WAKE_WORDS;
-  const FOLLOW_UP_MS = 5000;
   const wakeModeRef = useRef(false);
   const sessionUntilRef = useRef(0);
   const sessionTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -298,15 +302,15 @@ export default function Home() {
         }
         // Task finished: keep listening only if it is waiting on the user (price answer / AI question)
         if (wakeModeRef.current) {
-          // Waiting on the user (price / AI question): longer. Otherwise a short follow-up window so several
-          // commands can be chained without repeating the wake word, then back to background.
-          startSession(pendingActionRef.current || askedQuestionRef.current ? 15000 : FOLLOW_UP_MS);
+          // Waiting on the user (price / AI question): reopen the mic for the answer. Otherwise back to background.
+          if (pendingActionRef.current || askedQuestionRef.current) startSession(15000);
+          else endSession(true);
         }
       } finally {
         drainingRef.current = false;
       }
     },
-    [processCommand, startSession]
+    [processCommand, startSession, endSession]
   );
 
   // Web Speech Recognition
@@ -340,12 +344,14 @@ export default function Home() {
       }
       const command = afterWake ?? finalText;
       if (!command) {
+        // Bare wake word: open the mic and say so, the next phrase is the command
         startSession(10000);
-        setLastResponseText("ครับ?");
-        speak("ครับ");
+        setLastResponseText("กำลังฟัง...");
+        speak("กำลังฟัง");
         return;
       }
-      startSession(20000); // covers processing; the queue drain decides whether to continue or go back to background
+      // We have the command: close the mic UI right away; "แป๊บนะ -> กำลังคิด -> result" follows
+      endSession(true);
       handleProcessCommand(command);
     },
   });
@@ -358,7 +364,7 @@ export default function Home() {
         endSession(true);
       } else {
         startSession(10000);
-        setLastResponseText("ครับ?");
+        setLastResponseText("กำลังฟัง...");
       }
     } else {
       toggleListening();
@@ -557,6 +563,7 @@ export default function Home() {
           interimTranscript={wakeMode && !wakeActive ? "" : interimTranscript}
           responseText={lastResponseText}
           isProcessing={isProcessing}
+          processingText={processingCommand}
           errorMessage={errorMessage}
         />
       </div>
