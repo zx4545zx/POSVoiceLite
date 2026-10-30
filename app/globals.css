@@ -12,7 +12,18 @@
   --color-foreground: var(--foreground);
   /* Used across components but missing from Tailwind's palette; without them borders fall back to currentColor */
   --color-gray-150: #eceef1;
-  --color-emerald-150: #bff7dd;
+  /* Brand palette sampled from public/logo.png (primary #0365e8, accent teal #02eac5) */
+  --color-brand-50: #eef5ff;
+  --color-brand-100: #dbe9ff;
+  --color-brand-150: #c9dcfe;
+  --color-brand-200: #bcd5fe;
+  --color-brand-300: #8ab8fd;
+  --color-brand-400: #4f95f7;
+  --color-brand-500: #1b78ee;
+  --color-brand-600: #0365e8;
+  --color-brand-700: #0251c2;
+  --color-brand-800: #043f98;
+  --color-brand-900: #082f73;
   --font-sans: var(--font-kanit), ui-sans-serif, system-ui, sans-serif;
 }
 

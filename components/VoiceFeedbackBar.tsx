@@ -30,8 +30,8 @@ export function VoiceFeedbackBar({
 
   if (isProcessing) {
     return (
-      <div className="mx-4 mb-2 p-2.5 bg-emerald-50 border border-emerald-150 text-emerald-800 text-xs rounded-xl flex items-center justify-center space-x-2 animate-pulse">
-        <Sparkles className="w-3.5 h-3.5 text-emerald-600 animate-spin" />
+      <div className="mx-4 mb-2 p-2.5 bg-brand-50 border border-brand-150 text-brand-800 text-xs rounded-xl flex items-center justify-center space-x-2 animate-pulse">
+        <Sparkles className="w-3.5 h-3.5 text-brand-600 animate-spin" />
         <span className="font-medium">กำลังประมวลผลคำสั่ง...</span>
       </div>
     );
@@ -42,12 +42,12 @@ export function VoiceFeedbackBar({
       <div className="mx-4 mb-2 p-2.5 bg-gray-900/90 backdrop-blur-xs text-white text-xs rounded-xl flex flex-col gap-1 shadow-md animate-in fade-in duration-150">
         <div className="flex items-center space-x-2 min-w-0">
           <span className="text-gray-400 shrink-0">ได้ยิน:</span>
-          <span className="font-semibold text-emerald-400 truncate">
+          <span className="font-semibold text-brand-400 truncate">
             &ldquo;{currentHeard}&rdquo;
           </span>
         </div>
         {responseText && (
-          <div className="flex items-start space-x-1 text-emerald-300 text-[11px] min-w-0">
+          <div className="flex items-start space-x-1 text-brand-300 text-[11px] min-w-0">
             <Volume2 className="w-3 h-3 mt-0.5 shrink-0" />
             <span className="font-medium break-words line-clamp-3 min-w-0">{responseText}</span>
           </div>
@@ -58,8 +58,8 @@ export function VoiceFeedbackBar({
 
   if (responseText) {
     return (
-      <div className="mx-4 mb-2 p-2 bg-emerald-50 text-emerald-800 text-xs rounded-xl flex items-start justify-center space-x-1.5 font-medium">
-        <Volume2 className="w-3.5 h-3.5 mt-0.5 text-emerald-600 shrink-0" />
+      <div className="mx-4 mb-2 p-2 bg-brand-50 text-brand-800 text-xs rounded-xl flex items-start justify-center space-x-1.5 font-medium">
+        <Volume2 className="w-3.5 h-3.5 mt-0.5 text-brand-600 shrink-0" />
         <span className="break-words line-clamp-3 min-w-0">{responseText}</span>
       </div>
     );

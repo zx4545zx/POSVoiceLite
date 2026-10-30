@@ -39,7 +39,7 @@ export default function PrivacyPage() {
       <h2 className="text-lg font-bold pt-2">การลบข้อมูลและเพิกถอนสิทธิ์</h2>
       <p>
         กดออกจากระบบเพื่อลบเซสชันในเบราว์เซอร์ และเพิกถอนสิทธิ์ของแอปได้ที่
-        <a className="text-blue-600 underline" href="https://myaccount.google.com/permissions">
+        <a className="text-brand-600 underline" href="https://myaccount.google.com/permissions">
           {" "}myaccount.google.com/permissions
         </a>
         ข้อมูลในสเปรดชีตเป็นของคุณ ลบได้โดยตรงใน Google Drive

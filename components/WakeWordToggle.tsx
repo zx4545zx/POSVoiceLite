@@ -6,10 +6,11 @@ import { AlertTriangle, Ear } from "lucide-react";
 interface WakeWordToggleProps {
   enabled: boolean;
   isSupported: boolean;
+  wakeWords: string[];
   onChange: (enabled: boolean) => void;
 }
 
-export function WakeWordToggle({ enabled, isSupported, onChange }: WakeWordToggleProps) {
+export function WakeWordToggle({ enabled, isSupported, wakeWords, onChange }: WakeWordToggleProps) {
   const [confirming, setConfirming] = useState(false);
 
   if (!isSupported) return null;
@@ -19,7 +20,7 @@ export function WakeWordToggle({ enabled, isSupported, onChange }: WakeWordToggl
       <div role="status" className="mx-4 mb-2 p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-[11px] text-amber-900 flex items-start gap-2">
         <Ear className="w-4 h-4 shrink-0 mt-0.5 text-amber-600" />
         <p className="flex-1 min-w-0">
-          <span className="font-bold">กำลังฟังคำเรียก</span> พูด &ldquo;น้องครับ…&rdquo; หรือ &ldquo;โกโจ…&rdquo; นำหน้าคำสั่ง
+          <span className="font-bold">กำลังฟังคำเรียก</span> พูด {wakeWords.slice(0, 3).map((w) => `“${w}…”`).join(" หรือ ")} นำหน้าคำสั่ง
           ไมค์เปิดค้างและกินแบตเตอรี่ ตรวจยอดก่อนคิดเงินทุกครั้ง
         </p>
         <button onClick={() => onChange(false)} className="shrink-0 font-bold text-amber-800 underline">
@@ -66,7 +67,7 @@ export function WakeWordToggle({ enabled, isSupported, onChange }: WakeWordToggl
         className="px-3 py-1 text-xs rounded-full flex items-center space-x-1.5 bg-gray-100 text-gray-600 hover:bg-gray-200"
       >
         <Ear className="w-3.5 h-3.5" />
-        <span>เปิดโหมดเรียกด้วยเสียง (น้องครับ…)</span>
+        <span>เปิดโหมดเรียกด้วยเสียง ({wakeWords[0]}…)</span>
       </button>
     </div>
   );

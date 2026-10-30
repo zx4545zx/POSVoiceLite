@@ -20,7 +20,7 @@ export function OrderList({ items, onUpdateQty, onRemoveItem }: OrderListProps) 
         <p className="text-xs text-gray-400 mt-1 max-w-[200px]">
           แตะปุ่มไมโครโฟนด้านล่างแล้วพูด เช่น
           <br />
-          <span className="text-emerald-600 font-semibold">&ldquo;กะเพราหมูสอง&rdquo;</span>
+          <span className="text-brand-600 font-semibold">&ldquo;กะเพราหมูสอง&rdquo;</span>
         </p>
       </div>
     );

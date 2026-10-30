@@ -30,7 +30,7 @@ import {
   executePOSTool,
   initialCartState,
 } from "@/lib/pos/orderEngine";
-import { extractWakeCommand, parseFastPath } from "@/lib/nlp/fastPath";
+import { DEFAULT_WAKE_WORDS, extractWakeCommand, parseFastPath } from "@/lib/nlp/fastPath";
 
 export default function Home() {
   // Session & Auth state
@@ -241,6 +241,7 @@ export default function Home() {
 
   // Hands-free wake word mode (off by default; see WakeWordToggle for the warnings)
   const [wakeMode, setWakeMode] = useState(false);
+  const wakeWords = settings.wakeWords?.length ? settings.wakeWords : DEFAULT_WAKE_WORDS;
   const armedUntilRef = useRef(0); // after a bare wake word, accept the next phrase without one
 
   // Web Speech Recognition
@@ -264,7 +265,7 @@ export default function Home() {
       }
       // Ignore our own TTS being picked up by the mic
       if (isSpeaking()) return;
-      const afterWake = extractWakeCommand(finalText);
+      const afterWake = extractWakeCommand(finalText, wakeWords);
       const armed = Date.now() < armedUntilRef.current;
       if (afterWake === null && !armed) return; // ordinary chatter
       const command = afterWake ?? finalText;
@@ -429,7 +430,7 @@ export default function Home() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="flex flex-col items-center space-y-2 animate-pulse">
-          <div className="w-12 h-12 rounded-2xl bg-emerald-600 text-white flex items-center justify-center font-bold text-lg">
+          <div className="w-12 h-12 rounded-2xl bg-brand-600 text-white flex items-center justify-center font-bold text-lg">
             POS
           </div>
           <span className="text-xs font-semibold text-gray-400">
@@ -499,7 +500,7 @@ export default function Home() {
         isProcessing={isProcessing}
       />
 
-      <WakeWordToggle enabled={wakeMode} isSupported={isSupported} onChange={setWakeMode} />
+      <WakeWordToggle enabled={wakeMode} isSupported={isSupported} wakeWords={wakeWords} onChange={setWakeMode} />
 
       {/* Bottom Controls (Clear, Large Mic Push-to-Talk, Checkout) */}
       <BottomControls

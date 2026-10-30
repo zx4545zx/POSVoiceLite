@@ -37,8 +37,8 @@ export function VoiceMicButton({
       {/* Pulse ring animations during active listening */}
       {isListening && (
         <>
-          <div className="absolute -inset-3 rounded-full bg-emerald-500/20 animate-ping" />
-          <div className="absolute -inset-1.5 rounded-full bg-emerald-500/30 animate-pulse" />
+          <div className="absolute -inset-3 rounded-full bg-brand-500/20 animate-ping" />
+          <div className="absolute -inset-1.5 rounded-full bg-brand-500/30 animate-pulse" />
         </>
       )}
 
@@ -47,7 +47,7 @@ export function VoiceMicButton({
         className={`relative z-10 w-20 h-20 rounded-full flex items-center justify-center transition-all duration-200 active:scale-95 shadow-xl ${
           isListening
             ? "bg-red-500 text-white shadow-red-500/40 ring-4 ring-red-200"
-            : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/30 hover:shadow-emerald-600/50"
+            : "bg-brand-600 hover:bg-brand-700 text-white shadow-brand-600/30 hover:shadow-brand-600/50"
         }`}
         aria-label={isListening ? "กำลังฟัง แตะเพื่อหยุด" : "แตะเพื่อพูดสั่งอาหาร"}
       >

@@ -1,3 +1,4 @@
+import { parseWakeWords } from "@/lib/nlp/fastPath";
 import { Order, Product, Settings } from "@/types/pos";
 
 export interface GoogleDriveFile {
@@ -87,9 +88,9 @@ export async function createPOSSpreadsheet(accessToken: string): Promise<{ id: s
           values: [["orderId", "datetime", "items", "subtotal", "discount", "total"]],
         },
         {
-          range: "Settings!A1:C2",
+          range: "Settings!A1:D2",
           values: [
-            ["shopName", "voiceEnabled", "language"],
+            ["shopName", "voiceEnabled", "language", "wakeWords"],
             ["ร้านของฉัน", "TRUE", "th-TH"],
           ],
         },
@@ -287,7 +288,7 @@ export async function fetchSettingsFromSheet(
   accessToken: string,
   spreadsheetId: string
 ): Promise<Settings> {
-  const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/Settings!A2:C2`;
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/Settings!A2:D2`;
   const res = await fetch(url, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
@@ -311,6 +312,7 @@ export async function fetchSettingsFromSheet(
     shopName: row[0] || "ร้านของฉัน",
     voiceEnabled: row[1] !== "FALSE",
     language: row[2] || "th-TH",
+    wakeWords: row[3] ? parseWakeWords(row[3]) : undefined,
     spreadsheetId,
   };
 }
@@ -326,7 +328,7 @@ export async function saveSettingsToSheet(
   const current = await fetchSettingsFromSheet(accessToken, spreadsheetId);
   const updated: Settings = { ...current, ...settings };
 
-  const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/Settings!A2:C2?valueInputOption=RAW`;
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/Settings!A1:D2?valueInputOption=RAW`;
   const res = await fetch(url, {
     method: "PUT",
     headers: {
@@ -334,7 +336,15 @@ export async function saveSettingsToSheet(
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      values: [[updated.shopName, updated.voiceEnabled ? "TRUE" : "FALSE", updated.language]],
+      values: [
+        ["shopName", "voiceEnabled", "language", "wakeWords"],
+        [
+          updated.shopName,
+          updated.voiceEnabled ? "TRUE" : "FALSE",
+          updated.language,
+          parseWakeWords((updated.wakeWords ?? []).join(",")).join(","),
+        ],
+      ],
     }),
   });
 

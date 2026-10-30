@@ -27,6 +27,8 @@ export interface Order {
 export interface Settings {
   shopName: string;
   voiceEnabled: boolean;
+  /** Hands-free wake words; undefined means DEFAULT_WAKE_WORDS */
+  wakeWords?: string[];
   language: string;
   spreadsheetId?: string;
   spreadsheetUrl?: string;

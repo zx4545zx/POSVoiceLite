@@ -60,13 +60,13 @@ export function BottomControls({
           <button
             onClick={onCheckout}
             disabled={itemCount === 0}
-            className="flex flex-col items-center justify-center p-2 rounded-xl text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50 active:scale-95 transition-all disabled:opacity-30 disabled:pointer-events-none"
+            className="flex flex-col items-center justify-center p-2 rounded-xl text-brand-700 hover:text-brand-800 hover:bg-brand-50 active:scale-95 transition-all disabled:opacity-30 disabled:pointer-events-none"
             aria-label="คิดเงิน"
           >
-            <div className="w-10 h-10 rounded-full bg-emerald-600 text-white flex items-center justify-center mb-1 shadow-md shadow-emerald-600/30">
+            <div className="w-10 h-10 rounded-full bg-brand-600 text-white flex items-center justify-center mb-1 shadow-md shadow-brand-600/30">
               <CheckCircle2 className="w-5 h-5" />
             </div>
-            <span className="text-[11px] font-bold text-emerald-700">คิดเงิน</span>
+            <span className="text-[11px] font-bold text-brand-700">คิดเงิน</span>
           </button>
         </div>
       </div>

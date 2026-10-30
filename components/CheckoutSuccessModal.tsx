@@ -30,7 +30,7 @@ export function CheckoutSuccessModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
       <div className="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl flex flex-col text-center animate-in zoom-in-95 duration-200">
-        <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto mb-3 shadow-inner">
+        <div className="w-16 h-16 rounded-full bg-brand-100 text-brand-600 flex items-center justify-center mx-auto mb-3 shadow-inner">
           <CheckCircle2 className="w-10 h-10" />
         </div>
 
@@ -42,11 +42,11 @@ export function CheckoutSuccessModal({
         </h2>
 
         {/* Amount Pill */}
-        <div className="my-3 py-2 bg-emerald-50 rounded-2xl border border-emerald-100">
-          <span className="text-xs text-emerald-800 font-medium block">
+        <div className="my-3 py-2 bg-brand-50 rounded-2xl border border-brand-100">
+          <span className="text-xs text-brand-800 font-medium block">
             ยอดที่ต้องชำระ
           </span>
-          <span className="text-3xl font-black text-emerald-700">
+          <span className="text-3xl font-black text-brand-700">
             ฿{total.toLocaleString()}
           </span>
         </div>
@@ -79,7 +79,7 @@ export function CheckoutSuccessModal({
                 onClick={() => setCashReceived(bill)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                   cashReceived === bill
-                    ? "bg-emerald-600 text-white shadow-xs"
+                    ? "bg-brand-600 text-white shadow-xs"
                     : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                 }`}
               >
@@ -99,7 +99,7 @@ export function CheckoutSuccessModal({
         {/* Next Order Button */}
         <button
           onClick={onNextOrder}
-          className="mt-5 w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white font-bold text-base rounded-2xl shadow-lg shadow-emerald-600/30 flex items-center justify-center space-x-2 transition-all"
+          className="mt-5 w-full py-3.5 bg-brand-600 hover:bg-brand-700 active:scale-98 text-white font-bold text-base rounded-2xl shadow-lg shadow-brand-600/30 flex items-center justify-center space-x-2 transition-all"
         >
           <span>รับลูกค้าคนถัดไป</span>
           <ArrowRight className="w-5 h-5" />

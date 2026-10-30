@@ -23,7 +23,7 @@ export default function TermsPage() {
       </ul>
 
       <p>
-        ดู<a className="text-blue-600 underline" href="/privacy"> นโยบายความเป็นส่วนตัว </a>
+        ดู<a className="text-brand-600 underline" href="/privacy"> นโยบายความเป็นส่วนตัว </a>
         ประกอบ
       </p>
     </main>

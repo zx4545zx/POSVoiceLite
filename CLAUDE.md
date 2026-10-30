@@ -21,6 +21,8 @@ Command flow (`app/page.tsx` is the client orchestrator, holding cart/products/p
 4. `lib/pos/orderEngine.ts` (`executePOSTool` / `executeMultiplePOSTools`) is a pure reducer: `(actions, cart, products, pendingAction)` → new cart, `pendingAction`, response text and optional `needsProductSave` / `completedOrder`. Both paths feed the same engine. Shared types are in `types/pos.ts`.
 5. The page persists side effects through `/api/orders` and `/api/products`.
 
+Wake words are user-configurable (`Settings.wakeWords`, stored comma-joined in `Settings!D2`; `undefined` falls back to `DEFAULT_WAKE_WORDS`; `parseWakeWords` enforces 3+ base letters, max 5). Theme colors use the `brand-*` palette in `app/globals.css` (sampled from `public/logo.png`); `gray-150` is also defined there since Tailwind lacks it.
+
 Hands-free mode (off by default, gated by a warning in `components/WakeWordToggle.tsx`): `useSpeechRecognition({ alwaysOn })` reopens the mic whenever the browser ends recognition; `app/page.tsx` only acts on phrases starting with a wake word (`extractWakeCommand`, stricter than `cleanVoiceCommand`), and a bare wake word arms the next phrase for 8s. Results are dropped while our own TTS plays (`isSpeaking`, capped at 8s because iOS can leave `speechSynthesis.speaking` stuck).
 
 `pendingAction` is a multi-turn state: an unknown product yields "X กี่บาท?", and the next utterance (e.g. "60 บาท") is parsed by the fast path as the price answer, which saves the product and adds it to the cart.

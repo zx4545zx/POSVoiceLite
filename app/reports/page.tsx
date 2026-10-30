@@ -61,7 +61,7 @@ export default function ReportsPage() {
         <button
           onClick={downloadCsv}
           disabled={!report || report.bills === 0}
-          className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-lg disabled:opacity-40"
+          className="inline-flex items-center gap-1 text-xs font-semibold text-brand-700 bg-brand-50 px-3 py-1.5 rounded-lg disabled:opacity-40"
         >
           <Download className="w-3.5 h-3.5" /> CSV
         </button>
@@ -72,7 +72,7 @@ export default function ReportsPage() {
       {state.status === "error" && (
         <div className="p-8 text-center space-y-3">
           <p className="text-sm text-red-600">{state.message}</p>
-          <Link href="/" className="text-sm text-emerald-700 underline">กลับหน้าหลัก</Link>
+          <Link href="/" className="text-sm text-brand-700 underline">กลับหน้าหลัก</Link>
         </div>
       )}
 
@@ -90,7 +90,7 @@ export default function ReportsPage() {
                 key={r.id}
                 onClick={() => setRange(r.id)}
                 className={`flex-1 py-2 text-xs font-semibold rounded-lg border transition-colors ${
-                  range === r.id ? "bg-emerald-600 text-white border-emerald-600" : "bg-white text-gray-600 border-gray-200"
+                  range === r.id ? "bg-brand-600 text-white border-brand-600" : "bg-white text-gray-600 border-gray-200"
                 }`}
               >
                 {r.label}
@@ -128,7 +128,7 @@ export default function ReportsPage() {
                   <div key={d.date} className="flex items-center gap-2 text-xs">
                     <span className="w-14 shrink-0 text-gray-500">{shortDate(d.date)}</span>
                     <div className="flex-1 h-5 bg-gray-100 rounded">
-                      <div className="h-full bg-emerald-500 rounded" style={{ width: `${(d.total / maxDay) * 100}%` }} />
+                      <div className="h-full bg-brand-500 rounded" style={{ width: `${(d.total / maxDay) * 100}%` }} />
                     </div>
                     <span className="w-20 shrink-0 text-right font-semibold">{baht(d.total)}</span>
                   </div>
@@ -148,7 +148,7 @@ export default function ReportsPage() {
                     <span className="w-4 shrink-0 text-gray-400">{i + 1}</span>
                     <span className="w-28 sm:w-40 shrink-0 truncate font-medium">{t.name}</span>
                     <div className="flex-1 h-4 bg-gray-100 rounded">
-                      <div className="h-full bg-sky-500 rounded" style={{ width: `${(t.qty / maxTop) * 100}%` }} />
+                      <div className="h-full bg-teal-400 rounded" style={{ width: `${(t.qty / maxTop) * 100}%` }} />
                     </div>
                     <span className="w-24 shrink-0 text-right">{t.qty} ชิ้น · {baht(t.amount)}</span>
                   </div>

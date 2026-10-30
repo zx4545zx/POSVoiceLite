@@ -117,14 +117,37 @@ export function cleanVoiceCommand(raw: string): string {
   return text.trim();
 }
 
+export const DEFAULT_WAKE_WORDS = ["น้องครับ", "น้องคะ", "น้องค่ะ", "น้องโกโจ", "เฮ้โกโจ", "โกโจ", "hey gojo", "gojo"];
+
+const MIN_WAKE_WORD_LENGTH = 3;
+const MAX_WAKE_WORDS = 5;
+
+/** Splits user input like "น้องครับ, โกโจ" into a clean list (min 3 chars, max 5, deduped) */
+export function parseWakeWords(input: string): string[] {
+  const words = input
+    .split(/[,،\n]/)
+    .map((w) => w.trim())
+    // count base letters only: Thai vowel/tone marks (e.g. the ่ in "ค่ะ") would otherwise pad short words
+    .filter((w) => w.replace(/[\s\p{M}]/gu, "").length >= MIN_WAKE_WORD_LENGTH);
+  return [...new Set(words)].slice(0, MAX_WAKE_WORDS);
+}
+
 /**
- * Hands-free wake words: "น้องครับ/น้องคะ" or "[เฮ้|hey|น้อง] โกโจ/gojo". Deliberately stricter than
- * cleanVoiceCommand (which also strips "สวัสดี", "พี่"...) so ordinary chatter doesn't trigger orders.
+ * Hands-free wake words. Only the configured words count (deliberately stricter than
+ * cleanVoiceCommand, which also strips "สวัสดี", "พี่"...) so ordinary chatter doesn't trigger orders.
+ * Spaces between characters are optional because speech engines segment Thai inconsistently.
  * Returns the text after the wake word ("" if only the wake word was said), or null if there is none.
  */
-export function extractWakeCommand(raw: string): string | null {
+export function extractWakeCommand(raw: string, wakeWords: string[] = DEFAULT_WAKE_WORDS): string | null {
+  const alternatives = [...wakeWords]
+    .sort((x, y) => y.length - x.length)
+    .map((w) =>
+      [...w.replace(/\s+/g, "")].map((ch) => ch.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("\\s*")
+    )
+    .filter(Boolean);
+  if (alternatives.length === 0) return null;
   const text = raw.trim();
-  const m = text.match(/^(?:(?:เฮ้|hey|น้อง)\s*)?(?:gojo|โกโจ)\s*|^น้อง(?:ครับ|คะ|ค่ะ)\s*/i);
+  const m = text.match(new RegExp(`^(?:${alternatives.join("|")})\\s*`, "i"));
   return m ? text.slice(m[0].length).trim() : null;
 }
 

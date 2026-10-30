@@ -12,6 +12,7 @@ import {
   Plus,
   Trash2,
 } from "lucide-react";
+import { DEFAULT_WAKE_WORDS, parseWakeWords } from "@/lib/nlp/fastPath";
 import { Product, Settings, UserSession } from "@/types/pos";
 
 interface SettingsModalProps {
@@ -43,6 +44,8 @@ export function SettingsModal({
 }: SettingsModalProps) {
   const [shopName, setShopName] = useState(settings.shopName || "ร้านของฉัน");
   const [voiceEnabled, setVoiceEnabled] = useState(settings.voiceEnabled);
+  const [wakeWordsText, setWakeWordsText] = useState((settings.wakeWords?.length ? settings.wakeWords : DEFAULT_WAKE_WORDS).join(", "));
+  const parsedWakeWords = parseWakeWords(wakeWordsText);
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
@@ -58,7 +61,9 @@ export function SettingsModal({
     e.preventDefault();
     setIsSaving(true);
     try {
-      await onSaveSettings({ shopName, voiceEnabled });
+      const wakeWords = parsedWakeWords.length ? parsedWakeWords : DEFAULT_WAKE_WORDS;
+      await onSaveSettings({ shopName, voiceEnabled, wakeWords });
+      setWakeWordsText(wakeWords.join(", "));
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 2000);
     } finally {
@@ -108,7 +113,7 @@ export function SettingsModal({
             onClick={() => setActiveTab("settings")}
             className={`py-2.5 px-4 font-semibold text-xs border-b-2 transition-colors ${
               activeTab === "settings"
-                ? "border-emerald-600 text-emerald-700"
+                ? "border-brand-600 text-brand-700"
                 : "border-transparent text-gray-500 hover:text-gray-700"
             }`}
           >
@@ -118,7 +123,7 @@ export function SettingsModal({
             onClick={() => setActiveTab("products")}
             className={`py-2.5 px-4 font-semibold text-xs border-b-2 transition-colors ${
               activeTab === "products"
-                ? "border-emerald-600 text-emerald-700"
+                ? "border-brand-600 text-brand-700"
                 : "border-transparent text-gray-500 hover:text-gray-700"
             }`}
           >
@@ -142,7 +147,7 @@ export function SettingsModal({
                     value={shopName}
                     onChange={(e) => setShopName(e.target.value)}
                     placeholder="เช่น ร้านข้าวกะเพราคุณป้า"
-                    className="w-full px-3.5 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white"
+                    className="w-full px-3.5 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 focus:bg-white"
                   />
                 </div>
 
@@ -166,19 +171,41 @@ export function SettingsModal({
                       onChange={(e) => setVoiceEnabled(e.target.checked)}
                       className="sr-only peer"
                     />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-600"></div>
                   </label>
+                </div>
+
+                {/* Wake words */}
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">
+                    คำปลุก (โหมดเรียกด้วยเสียง)
+                  </label>
+                  <input
+                    type="text"
+                    value={wakeWordsText}
+                    onChange={(e) => setWakeWordsText(e.target.value)}
+                    placeholder="เช่น น้องครับ, โกโจ"
+                    className="w-full px-3.5 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 focus:bg-white"
+                  />
+                  <p className="text-[11px] text-gray-500 mt-1">
+                    คั่นด้วยเครื่องหมาย , ได้สูงสุด 5 คำ คำละ 3 ตัวอักษรขึ้นไป คำสั้นหรือคำที่พูดบ่อยจะทำให้ถูกปลุกโดยไม่ตั้งใจ
+                    · ตอนนี้ใช้ {parsedWakeWords.length || DEFAULT_WAKE_WORDS.length} คำ
+                    {" · "}
+                    <button type="button" onClick={() => setWakeWordsText(DEFAULT_WAKE_WORDS.join(", "))} className="underline">
+                      คืนค่าเริ่มต้น
+                    </button>
+                  </p>
                 </div>
 
                 {/* Save button */}
                 <button
                   type="submit"
                   disabled={isSaving}
-                  className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white font-semibold text-sm rounded-xl transition-all flex items-center justify-center space-x-2 shadow-sm"
+                  className="w-full py-2.5 bg-brand-600 hover:bg-brand-700 active:scale-98 text-white font-semibold text-sm rounded-xl transition-all flex items-center justify-center space-x-2 shadow-sm"
                 >
                   {saveSuccess ? (
                     <>
-                      <CheckCircle className="w-4 h-4 text-emerald-200" />
+                      <CheckCircle className="w-4 h-4 text-brand-200" />
                       <span>บันทึกสำเร็จ</span>
                     </>
                   ) : (
@@ -201,7 +228,7 @@ export function SettingsModal({
                     onClick={onTestMic}
                     className="p-3 bg-gray-100 hover:bg-gray-150 active:scale-95 rounded-xl text-left transition-all"
                   >
-                    <Mic className="w-4 h-4 text-emerald-600 mb-1" />
+                    <Mic className="w-4 h-4 text-brand-600 mb-1" />
                     <span className="text-xs font-semibold text-gray-900 block">
                       🎤 ทดสอบไมค์
                     </span>
@@ -215,7 +242,7 @@ export function SettingsModal({
                     onClick={onTestVoice}
                     className="p-3 bg-gray-100 hover:bg-gray-150 active:scale-95 rounded-xl text-left transition-all"
                   >
-                    <Volume2 className="w-4 h-4 text-indigo-600 mb-1" />
+                    <Volume2 className="w-4 h-4 text-brand-600 mb-1" />
                     <span className="text-xs font-semibold text-gray-900 block">
                       🔊 ทดสอบเสียง
                     </span>
@@ -253,7 +280,7 @@ export function SettingsModal({
                       href={session.spreadsheetUrl}
                       target="_blank"
                       rel="noreferrer"
-                      className="inline-flex items-center text-xs font-semibold text-emerald-600 hover:underline pt-1"
+                      className="inline-flex items-center text-xs font-semibold text-brand-600 hover:underline pt-1"
                     >
                       <ExternalLink className="w-3.5 h-3.5 mr-1" /> เปิดดูตาราง Google
                       Sheets
@@ -300,7 +327,7 @@ export function SettingsModal({
                   <button
                     type="submit"
                     disabled={!newProdName.trim() || !newProdPrice}
-                    className="px-3 py-1.5 bg-emerald-600 text-white font-bold text-xs rounded-lg active:scale-95 disabled:opacity-50"
+                    className="px-3 py-1.5 bg-brand-600 text-white font-bold text-xs rounded-lg active:scale-95 disabled:opacity-50"
                   >
                     <Plus className="w-4 h-4" />
                   </button>
@@ -323,7 +350,7 @@ export function SettingsModal({
                       </span>
                     </div>
                     <div className="flex items-center space-x-2 shrink-0">
-                      <span className="text-sm font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md">
+                      <span className="text-sm font-bold text-brand-700 bg-brand-50 px-2 py-0.5 rounded-md">
                         ฿{prod.price}
                       </span>
                       <button

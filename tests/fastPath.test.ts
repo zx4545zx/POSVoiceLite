@@ -5,6 +5,7 @@ import {
   cleanVoiceCommand,
   parseFastPath,
   extractWakeCommand,
+  parseWakeWords,
 } from "../lib/nlp/fastPath";
 import { Product } from "../types/pos";
 
@@ -210,4 +211,29 @@ describe("wake word", () => {
   for (const [input, expected] of cases) {
     test(JSON.stringify(input), () => assert.equal(extractWakeCommand(input), expected));
   }
+});
+
+describe("custom wake words", () => {
+  test("parseWakeWords trims, dedupes, drops short words, caps at 5", () => {
+    assert.deepEqual(parseWakeWords(" น้องครับ , โกโจ,โกโจ,ค่ะ,ab, a b ,x y z,สวัสดีร้าน,เจ้านาย,ซุปเปอร์"), [
+      "น้องครับ", "โกโจ", "x y z", "สวัสดีร้าน", "เจ้านาย",
+    ]);
+    assert.deepEqual(parseWakeWords(""), []);
+  });
+
+  test("uses only the given words", () => {
+    assert.equal(extractWakeCommand("สวัสดีร้าน กะเพราหมู 2", ["สวัสดีร้าน"]), "กะเพราหมู 2");
+    assert.equal(extractWakeCommand("น้องครับ กะเพราหมู 2", ["สวัสดีร้าน"]), null);
+  });
+
+  test("tolerates spaces the speech engine adds inside the word", () => {
+    assert.equal(extractWakeCommand("สวัสดี ร้าน คิดเงิน", ["สวัสดีร้าน"]), "คิดเงิน");
+    assert.equal(extractWakeCommand("น้อง ครับ คิดเงิน"), "คิดเงิน");
+  });
+
+  test("regex characters in a custom word are escaped; empty list never matches", () => {
+    assert.equal(extractWakeCommand("a.b c", ["a.b"]), "c");
+    assert.equal(extractWakeCommand("axb c", ["a.b"]), null);
+    assert.equal(extractWakeCommand("โกโจ", []), null);
+  });
 });

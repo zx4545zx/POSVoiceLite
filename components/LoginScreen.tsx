@@ -22,7 +22,7 @@ export function LoginScreen({ onLoginDemo, isConfigured }: LoginScreenProps) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-emerald-50 via-white to-gray-50 flex flex-col justify-between p-6 max-w-md mx-auto select-none">
+    <div className="min-h-screen bg-gradient-to-b from-brand-50 via-white to-gray-50 flex flex-col justify-between p-6 max-w-md mx-auto select-none">
       {/* Top Branding */}
       <div className="pt-8 text-center">
         <Image
@@ -43,8 +43,8 @@ export function LoginScreen({ onLoginDemo, isConfigured }: LoginScreenProps) {
 
       {/* Feature Highlights */}
       <div className="my-8 space-y-3">
-        <div className="p-3.5 bg-white rounded-2xl border border-emerald-100 shadow-xs flex items-center space-x-3">
-          <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+        <div className="p-3.5 bg-white rounded-2xl border border-brand-100 shadow-xs flex items-center space-x-3">
+          <div className="w-9 h-9 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center shrink-0">
             <Mic className="w-5 h-5" />
           </div>
           <div>
@@ -55,8 +55,8 @@ export function LoginScreen({ onLoginDemo, isConfigured }: LoginScreenProps) {
           </div>
         </div>
 
-        <div className="p-3.5 bg-white rounded-2xl border border-emerald-100 shadow-xs flex items-center space-x-3">
-          <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+        <div className="p-3.5 bg-white rounded-2xl border border-brand-100 shadow-xs flex items-center space-x-3">
+          <div className="w-9 h-9 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center shrink-0">
             <Table className="w-5 h-5" />
           </div>
           <div>
@@ -69,8 +69,8 @@ export function LoginScreen({ onLoginDemo, isConfigured }: LoginScreenProps) {
           </div>
         </div>
 
-        <div className="p-3.5 bg-white rounded-2xl border border-emerald-100 shadow-xs flex items-center space-x-3">
-          <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+        <div className="p-3.5 bg-white rounded-2xl border border-brand-100 shadow-xs flex items-center space-x-3">
+          <div className="w-9 h-9 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center shrink-0">
             <Sparkles className="w-5 h-5" />
           </div>
           <div>
@@ -89,7 +89,7 @@ export function LoginScreen({ onLoginDemo, isConfigured }: LoginScreenProps) {
         {isConfigured ? (
           <a
             href="/api/auth/google"
-            className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white font-bold text-base rounded-2xl shadow-lg shadow-emerald-600/30 flex items-center justify-center space-x-2 transition-all"
+            className="w-full py-4 bg-brand-600 hover:bg-brand-700 active:scale-98 text-white font-bold text-base rounded-2xl shadow-lg shadow-brand-600/30 flex items-center justify-center space-x-2 transition-all"
           >
             <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
               <path d="M12.24 10.285V13.4h6.887C18.2 15.633 16.32 18 12.24 18c-3.6 0-6.52-2.92-6.52-6.52s2.92-6.52 6.52-6.52c1.78 0 3.32.68 4.48 1.76l2.36-2.36C17.48 2.8 15.08 2 12.24 2 6.58 2 2 6.58 2 12.24s4.58 10.24 10.24 10.24c5.92 0 9.84-4.16 9.84-10.04 0-.68-.08-1.32-.2-1.92H12.24z" />
@@ -115,7 +115,7 @@ export function LoginScreen({ onLoginDemo, isConfigured }: LoginScreenProps) {
         )}
 
         <div className="flex items-center justify-center space-x-1 text-[11px] text-gray-400 pt-1">
-          <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+          <ShieldCheck className="w-3.5 h-3.5 text-brand-600" />
           <span>ขอสิทธิ์เฉพาะ Google Drive ไฟล์ที่สร้างโดยแอพนี้เท่านั้น</span>
         </div>
 

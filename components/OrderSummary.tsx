@@ -17,7 +17,7 @@ export function OrderSummary({ cart }: OrderSummaryProps) {
       )}
 
       {cart.discount > 0 && (
-        <div className="flex justify-between items-center text-xs text-emerald-600 font-medium mb-1">
+        <div className="flex justify-between items-center text-xs text-brand-600 font-medium mb-1">
           <span>ส่วนลด</span>
           <span>-฿{cart.discount.toLocaleString()}</span>
         </div>
