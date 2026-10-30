@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useRef } from "react";
 
 export interface UseSpeechSynthesisOptions {
   voiceEnabled?: boolean;
@@ -11,11 +11,24 @@ export function useSpeechSynthesis({
   voiceEnabled = true,
   lang = "th-TH",
 }: UseSpeechSynthesisOptions = {}) {
+  const lastSpeakAtRef = useRef(0);
+
+  /** True while our own TTS is likely playing. Capped at 8s because `speaking` can stick on some browsers (iOS Safari). */
+  const isSpeaking = useCallback(
+    () =>
+      typeof window !== "undefined" &&
+      "speechSynthesis" in window &&
+      window.speechSynthesis.speaking &&
+      Date.now() - lastSpeakAtRef.current < 8000,
+    []
+  );
+
   const speak = useCallback(
     (text: string) => {
       if (!voiceEnabled || !text || typeof window === "undefined" || !("speechSynthesis" in window)) {
         return;
       }
+      lastSpeakAtRef.current = Date.now();
 
       try {
         // Cancel any pending or ongoing speech immediately to stay responsive
@@ -50,5 +63,6 @@ export function useSpeechSynthesis({
   return {
     speak,
     stop,
+    isSpeaking,
   };
 }

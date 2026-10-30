@@ -42,12 +42,15 @@ declare global {
 
 export interface UseSpeechRecognitionOptions {
   lang?: string;
+  /** Keep the mic open: restart recognition whenever the browser ends it */
+  alwaysOn?: boolean;
   onResult?: (transcript: string) => void;
   onError?: (error: string) => void;
 }
 
 export function useSpeechRecognition({
   lang = "th-TH",
+  alwaysOn = false,
   onResult,
   onError,
 }: UseSpeechRecognitionOptions = {}) {
@@ -64,9 +67,11 @@ export function useSpeechRecognition({
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
   const onResultRef = useRef(onResult);
   const onErrorRef = useRef(onError);
+  const alwaysOnRef = useRef(alwaysOn);
   useEffect(() => {
     onResultRef.current = onResult;
     onErrorRef.current = onError;
+    alwaysOnRef.current = alwaysOn;
   });
 
   useEffect(() => {
@@ -90,10 +95,24 @@ export function useSpeechRecognition({
 
       recognition.onend = () => {
         setIsListening(false);
+        // Browsers end recognition after each phrase/silence; reopen the mic while hands-free is on
+        if (alwaysOnRef.current) {
+          setTimeout(() => {
+            if (!alwaysOnRef.current) return;
+            try {
+              recognition.start();
+            } catch {
+              // already started
+            }
+          }, 300);
+        }
       };
 
       recognition.onerror = (event: { error: string }) => {
         setIsListening(false);
+        if (event.error === "not-allowed" || event.error === "service-not-allowed") {
+          alwaysOnRef.current = false; // mic denied: don't loop
+        }
         // Ignore "no-speech" or "aborted" as normal user behaviors
         if (event.error !== "no-speech" && event.error !== "aborted") {
           console.warn("Speech recognition error:", event.error);
@@ -160,6 +179,17 @@ export function useSpeechRecognition({
       console.warn("Could not stop recognition:", e);
     }
   }, []);
+
+  useEffect(() => {
+    const rec = recognitionRef.current;
+    if (!rec) return;
+    try {
+      if (alwaysOn) rec.start();
+      else rec.abort();
+    } catch {
+      // already started / not started
+    }
+  }, [alwaysOn]);
 
   const toggleListening = useCallback(() => {
     if (isListening) {

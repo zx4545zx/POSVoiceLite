@@ -4,6 +4,7 @@ import {
   parseThaiNumber,
   cleanVoiceCommand,
   parseFastPath,
+  extractWakeCommand,
 } from "../lib/nlp/fastPath";
 import { Product } from "../types/pos";
 
@@ -191,4 +192,22 @@ describe("multiple items in one utterance", () => {
     const r = parseFastPath("ชาเขียว 2", null, []);
     assert.equal(r?.matchedRule, "addItem_trailingQuantity");
   });
+});
+
+describe("wake word", () => {
+  const cases: [string, string | null][] = [
+    ["น้องครับ กระเพราหมู 2", "กระเพราหมู 2"],
+    ["น้องคะ คิดเงิน", "คิดเงิน"],
+    ["เฮ้ โกโจ กะเพราหมู 2", "กะเพราหมู 2"],
+    ["hey gojo checkout", "checkout"],
+    ["โกโจ", ""],
+    ["น้องครับ", ""],
+    ["กะเพราหมู 2", null],
+    ["สวัสดีครับ คิดเงิน", null], // generic greetings must not trigger hands-free
+    ["พี่ครับ คิดเงิน", null],
+    ["ลูกค้าบอกน้องครับ", null], // only at the start
+  ];
+  for (const [input, expected] of cases) {
+    test(JSON.stringify(input), () => assert.equal(extractWakeCommand(input), expected));
+  }
 });

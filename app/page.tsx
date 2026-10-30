@@ -5,6 +5,7 @@ import { Header } from "@/components/Header";
 import { OrderList } from "@/components/OrderList";
 import { OrderSummary } from "@/components/OrderSummary";
 import { BottomControls } from "@/components/BottomControls";
+import { WakeWordToggle } from "@/components/WakeWordToggle";
 import { VoiceFeedbackBar } from "@/components/VoiceFeedbackBar";
 import { PendingPricePrompt } from "@/components/PendingPricePrompt";
 import { SettingsModal } from "@/components/SettingsModal";
@@ -29,7 +30,7 @@ import {
   executePOSTool,
   initialCartState,
 } from "@/lib/pos/orderEngine";
-import { parseFastPath } from "@/lib/nlp/fastPath";
+import { extractWakeCommand, parseFastPath } from "@/lib/nlp/fastPath";
 
 export default function Home() {
   // Session & Auth state
@@ -67,7 +68,7 @@ export default function Home() {
   });
 
   // Text to Speech
-  const { speak } = useSpeechSynthesis({
+  const { speak, isSpeaking } = useSpeechSynthesis({
     voiceEnabled: settings.voiceEnabled,
     lang: settings.language || "th-TH",
   });
@@ -238,6 +239,10 @@ export default function Home() {
     [isProcessing, speak]
   );
 
+  // Hands-free wake word mode (off by default; see WakeWordToggle for the warnings)
+  const [wakeMode, setWakeMode] = useState(false);
+  const armedUntilRef = useRef(0); // after a bare wake word, accept the next phrase without one
+
   // Web Speech Recognition
   const {
     isListening,
@@ -248,10 +253,41 @@ export default function Home() {
     toggleListening,
   } = useSpeechRecognition({
     lang: settings.language || "th-TH",
+    alwaysOn: wakeMode,
+    onError: (err) => {
+      if (err === "not-allowed" || err === "service-not-allowed") setWakeMode(false);
+    },
     onResult: (finalText) => {
-      handleProcessCommand(finalText);
+      if (!wakeMode) {
+        handleProcessCommand(finalText);
+        return;
+      }
+      // Ignore our own TTS being picked up by the mic
+      if (isSpeaking()) return;
+      const afterWake = extractWakeCommand(finalText);
+      const armed = Date.now() < armedUntilRef.current;
+      if (afterWake === null && !armed) return; // ordinary chatter
+      const command = afterWake ?? finalText;
+      if (!command) {
+        armedUntilRef.current = Date.now() + 8000;
+        setLastResponseText("ครับ?");
+        speak("ครับ");
+        return;
+      }
+      armedUntilRef.current = 0;
+      handleProcessCommand(command);
     },
   });
+
+  // In hands-free mode the mic is already open, so pressing it just arms the next phrase
+  const handleMicToggle = () => {
+    if (wakeMode) {
+      armedUntilRef.current = Date.now() + 8000;
+      setLastResponseText("ครับ?");
+    } else {
+      toggleListening();
+    }
+  };
 
   // Manual actions
   const handleUpdateQty = (name: string, qty: number) => {
@@ -463,13 +499,15 @@ export default function Home() {
         isProcessing={isProcessing}
       />
 
+      <WakeWordToggle enabled={wakeMode} isSupported={isSupported} onChange={setWakeMode} />
+
       {/* Bottom Controls (Clear, Large Mic Push-to-Talk, Checkout) */}
       <BottomControls
         itemCount={cart.items.length}
         total={cart.total}
         isListening={isListening}
         isSupported={isSupported}
-        onToggleListening={toggleListening}
+        onToggleListening={handleMicToggle}
         onClearOrder={handleClearOrder}
         onCheckout={handleCheckout}
         onToggleKeyboard={() => setIsKeyboardOpen((prev) => !prev)}

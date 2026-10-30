@@ -118,6 +118,17 @@ export function cleanVoiceCommand(raw: string): string {
 }
 
 /**
+ * Hands-free wake words: "น้องครับ/น้องคะ" or "[เฮ้|hey|น้อง] โกโจ/gojo". Deliberately stricter than
+ * cleanVoiceCommand (which also strips "สวัสดี", "พี่"...) so ordinary chatter doesn't trigger orders.
+ * Returns the text after the wake word ("" if only the wake word was said), or null if there is none.
+ */
+export function extractWakeCommand(raw: string): string | null {
+  const text = raw.trim();
+  const m = text.match(/^(?:(?:เฮ้|hey|น้อง)\s*)?(?:gojo|โกโจ)\s*|^น้อง(?:ครับ|คะ|ค่ะ)\s*/i);
+  return m ? text.slice(m[0].length).trim() : null;
+}
+
+/**
  * Classifiers to strip when extracting quantity
  */
 const CLASSIFIERS = [
