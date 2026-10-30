@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { Settings as SettingsIcon, ExternalLink, Cloud, CloudOff, BarChart3 } from "lucide-react";
 import { UserSession } from "@/types/pos";
@@ -14,9 +15,7 @@ export function Header({ shopName, session, onOpenSettings }: HeaderProps) {
   return (
     <header className="sticky top-0 z-20 bg-white/90 backdrop-blur-md border-b border-gray-150 px-4 py-3 flex items-center justify-between">
       <div className="flex items-center space-x-2">
-        <div className="w-8 h-8 rounded-full bg-brand-600 flex items-center justify-center text-white font-bold text-sm shadow-sm">
-          POS
-        </div>
+        <Image src="/logo.png" alt="POS Voice Lite" width={36} height={36} priority className="rounded-xl shrink-0" />
         <div>
           <h1 className="font-bold text-gray-900 text-lg leading-tight truncate max-w-[170px] sm:max-w-xs">
             {shopName || "ร้านของฉัน"}

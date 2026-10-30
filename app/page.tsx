@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
+import Image from "next/image";
 import { Header } from "@/components/Header";
 import { OrderList } from "@/components/OrderList";
 import { OrderSummary } from "@/components/OrderSummary";
@@ -504,9 +505,7 @@ export default function Home() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="flex flex-col items-center space-y-2 animate-pulse">
-          <div className="w-12 h-12 rounded-2xl bg-brand-600 text-white flex items-center justify-center font-bold text-lg">
-            POS
-          </div>
+          <Image src="/logo.png" alt="POS Voice Lite" width={72} height={72} priority />
           <span className="text-xs font-semibold text-gray-400">
             กำลังโหลดระบบ...
           </span>
