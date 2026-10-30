@@ -49,6 +49,7 @@ export function SettingsModal({
   // New product inline form
   const [newProdName, setNewProdName] = useState("");
   const [newProdPrice, setNewProdPrice] = useState("");
+  const activeProducts = products.filter((p) => p.active !== false);
   const [activeTab, setActiveTab] = useState<"settings" | "products">("settings");
 
   if (!isOpen) return null;
@@ -121,7 +122,7 @@ export function SettingsModal({
                 : "border-transparent text-gray-500 hover:text-gray-700"
             }`}
           >
-            รายการสินค้า ({products.length})
+            รายการสินค้า ({activeProducts.length})
           </button>
         </div>
 
@@ -308,7 +309,7 @@ export function SettingsModal({
 
               {/* Product list */}
               <div className="divide-y divide-gray-100">
-                {products.map((prod) => (
+                {activeProducts.map((prod) => (
                   <div
                     key={prod.id}
                     className="py-2.5 flex items-center justify-between gap-3"
@@ -326,11 +327,15 @@ export function SettingsModal({
                         ฿{prod.price}
                       </span>
                       <button
-                        onClick={() =>
-                          onUpdateProduct({ ...prod, active: !prod.active })
-                        }
-                        className="p-1 text-gray-400 hover:text-red-500"
-                        title={prod.active ? "ปิดใช้งาน" : "เปิดใช้งาน"}
+                        onClick={() => {
+                          // Soft delete: keeps the row in the sheet, hides it everywhere in the app
+                          if (window.confirm(`ลบ "${prod.name}" ออกจากเมนู?`)) {
+                            onUpdateProduct({ ...prod, active: false });
+                          }
+                        }}
+                        className="p-2 -mr-1 text-gray-400 hover:text-red-500"
+                        aria-label={`ลบ ${prod.name}`}
+                        title="ลบ"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
