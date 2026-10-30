@@ -248,6 +248,7 @@ export default function Home() {
   const [wakeActive, setWakeActive] = useState(false);
   const [lastHeard, setLastHeard] = useState("");
   const wakeWords = settings.wakeWords?.length ? settings.wakeWords : DEFAULT_WAKE_WORDS;
+  const FOLLOW_UP_MS = 5000;
   const wakeModeRef = useRef(false);
   const sessionUntilRef = useRef(0);
   const sessionTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -295,14 +296,15 @@ export default function Home() {
         }
         // Task finished: keep listening only if it is waiting on the user (price answer / AI question)
         if (wakeModeRef.current) {
-          if (pendingActionRef.current || askedQuestionRef.current) startSession(15000);
-          else endSession();
+          // Waiting on the user (price / AI question): longer. Otherwise a short follow-up window so several
+          // commands can be chained without repeating the wake word, then back to background.
+          startSession(pendingActionRef.current || askedQuestionRef.current ? 15000 : FOLLOW_UP_MS);
         }
       } finally {
         drainingRef.current = false;
       }
     },
-    [processCommand, startSession, endSession]
+    [processCommand, startSession]
   );
 
   // Web Speech Recognition

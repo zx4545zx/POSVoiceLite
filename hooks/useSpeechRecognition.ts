@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback, useSyncExternalStore } from "react";
+import { SPEECH_END_MS, tailAfter } from "@/lib/nlp/endpointing";
 
 // Types for Web Speech API
 interface SpeechRecognitionEventLike {
@@ -83,6 +84,16 @@ export function useSpeechRecognition({
     if (!SpeechRecognitionClass) return;
 
     let disposed = false;
+    // Our own end-of-phrase detection (see lib/nlp/endpointing.ts): resultIndex -> text already handed on
+    const committed = new Map<number, string>();
+    let silenceTimer: ReturnType<typeof setTimeout> | undefined;
+    const emit = (text: string) => {
+      const t = text.trim();
+      if (!t) return;
+      setTranscript(t);
+      setInterimTranscript("");
+      onResultRef.current?.(t);
+    };
     try {
       const recognition = new SpeechRecognitionClass();
       // Hands-free: one long session instead of reopening the mic after every phrase (gaps lose speech)
@@ -91,11 +102,13 @@ export function useSpeechRecognition({
       recognition.lang = lang;
 
       recognition.onstart = () => {
+        committed.clear();
         setIsListening(true);
         setErrorMessage(null);
       };
 
       recognition.onend = () => {
+        clearTimeout(silenceTimer);
         setIsListening(false);
         // Browsers end recognition after each phrase/silence; reopen the mic while hands-free is on
         if (alwaysOnRef.current && !disposed) {
@@ -125,25 +138,29 @@ export function useSpeechRecognition({
       };
 
       recognition.onresult = (event: SpeechRecognitionEventLike) => {
-        let currentInterim = "";
-        let currentFinal = "";
+        clearTimeout(silenceTimer);
+        let pending: { index: number; text: string } | null = null;
 
         for (let i = event.resultIndex; i < event.results.length; i++) {
           const item = event.results[i];
+          const text = item[0].transcript;
           if (item.isFinal) {
-            currentFinal += item[0].transcript;
+            emit(tailAfter(committed.get(i), text));
+            committed.delete(i);
           } else {
-            currentInterim += item[0].transcript;
+            pending = { index: i, text };
           }
         }
 
-        if (currentFinal) {
-          const trimmedFinal = currentFinal.trim();
-          setTranscript(trimmedFinal);
-          setInterimTranscript("");
-          onResultRef.current?.(trimmedFinal);
-        } else if (currentInterim) {
-          setInterimTranscript(currentInterim);
+        if (pending) {
+          const { index, text } = pending;
+          setInterimTranscript(tailAfter(committed.get(index), text));
+          // Browsers can take seconds to mark a phrase final (esp. continuous mode): a pause means it ended
+          silenceTimer = setTimeout(() => {
+            const tail = tailAfter(committed.get(index), text);
+            committed.set(index, text);
+            emit(tail);
+          }, SPEECH_END_MS);
         }
       };
 
@@ -154,6 +171,7 @@ export function useSpeechRecognition({
 
     return () => {
       disposed = true;
+      clearTimeout(silenceTimer);
       try {
         recognitionRef.current?.abort();
       } catch {

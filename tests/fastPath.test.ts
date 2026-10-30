@@ -7,6 +7,7 @@ import {
   extractWakeCommand,
   parseWakeWords,
 } from "../lib/nlp/fastPath";
+import { tailAfter } from "../lib/nlp/endpointing";
 import { Product } from "../types/pos";
 
 describe("Thai Number Parser", () => {
@@ -235,5 +236,14 @@ describe("custom wake words", () => {
     assert.equal(extractWakeCommand("a.b c", ["a.b"]), "c");
     assert.equal(extractWakeCommand("axb c", ["a.b"]), null);
     assert.equal(extractWakeCommand("โกโจ", []), null);
+  });
+});
+
+describe("endpointing", () => {
+  test("tailAfter returns only the not-yet-committed part", () => {
+    assert.equal(tailAfter(undefined, "น้องครับ กะเพราหมู 2"), "น้องครับ กะเพราหมู 2");
+    assert.equal(tailAfter("น้องครับ กะเพราหมู 2", "น้องครับ กะเพราหมู 2"), "");
+    assert.equal(tailAfter("น้องครับ กะเพราหมู", "น้องครับ กะเพราหมู 2").trim(), "2");
+    assert.equal(tailAfter("กะเพราหมู 2", "กะเพราหมูสอง"), ""); // reworded final: don't run it twice
   });
 });
