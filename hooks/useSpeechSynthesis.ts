@@ -32,9 +32,12 @@ export function useSpeechSynthesis({
     return h.length >= 3 && s.includes(h) && h.length >= s.length * 0.8;
   }, []);
 
+  /** `onDone` runs once the speech has ended and the echo tail has passed (so the mic can open cleanly).
+   *  It is skipped if another utterance replaced this one, and runs right away if nothing is spoken. */
   const speak = useCallback(
-    (text: string) => {
+    (text: string, onDone?: () => void) => {
       if (!voiceEnabled || !text || typeof window === "undefined" || !("speechSynthesis" in window)) {
+        onDone?.();
         return;
       }
       mutedUntilRef.current = Date.now() + Math.min(8000, 1500 + text.length * 120);
@@ -59,9 +62,16 @@ export function useSpeechSynthesis({
         // A cancelled utterance fires onerror after the next one has started: only the latest may unmute
         const id = ++utteranceIdRef.current;
         const echoTail = Math.min(1500, 400 + text.length * 40);
-        const unmuteSoon = () => {
-          if (id === utteranceIdRef.current) mutedUntilRef.current = Date.now() + echoTail;
+        let finished = false;
+        const finish = () => {
+          if (finished || id !== utteranceIdRef.current) return;
+          finished = true;
+          mutedUntilRef.current = Date.now() + echoTail;
+          if (onDone) setTimeout(() => id === utteranceIdRef.current && onDone(), echoTail);
         };
+        const unmuteSoon = finish;
+        // Fallback in case the browser never fires onend (can happen on some mobile browsers)
+        if (onDone) setTimeout(finish, Math.min(8000, 1500 + text.length * 120));
         utterance.onend = unmuteSoon;
         utterance.onerror = unmuteSoon;
 

@@ -344,10 +344,10 @@ export default function Home() {
       }
       const command = afterWake ?? finalText;
       if (!command) {
-        // Bare wake word: open the mic and say so, the next phrase is the command
-        startSession(10000);
+        // Bare wake word: say "กำลังฟัง" first, and only when that has finished open the mic (so we never hear
+        // ourselves and the red mic marks the moment to speak); the next phrase is the command
         setLastResponseText("กำลังฟัง...");
-        speak("กำลังฟัง");
+        speak("กำลังฟัง", () => startSession(10000));
         return;
       }
       // We have the command: close the mic UI right away; "แป๊บนะ -> กำลังคิด -> result" follows
