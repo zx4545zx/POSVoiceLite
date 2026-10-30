@@ -158,3 +158,39 @@ describe("POS Order Engine", () => {
     assert.equal(state.responseText, "ล้างบิลแล้ว");
   });
 });
+
+describe("two unpriced items in one utterance", () => {
+  test("asks price for each in turn and ends with both in the cart", () => {
+    const first = executeMultiplePOSTools(
+      [
+        { tool: "addItem", args: { name: "ต้มยำกุ้ง", qty: 2 } },
+        { tool: "addItem", args: { name: "ผัดกระเพรา", qty: 1 } },
+      ],
+      initialCartState, [], null
+    );
+    assert.equal(first.responseText, "ต้มยำกุ้ง กี่บาท?");
+    assert.equal(first.pendingAction?.productName, "ต้มยำกุ้ง");
+
+    const second = executeMultiplePOSTools(
+      [
+        { tool: "setProductPrice", args: { name: "ต้มยำกุ้ง", price: 100 } },
+        { tool: "addItem", args: { name: "ต้มยำกุ้ง", qty: 2 } },
+      ],
+      first.cart, first.products, first.pendingAction
+    );
+    assert.equal(second.responseText, "ผัดกระเพรา กี่บาท?");
+    assert.equal(second.pendingAction?.productName, "ผัดกระเพรา");
+    assert.equal(second.cart.total, 200);
+
+    const third = executeMultiplePOSTools(
+      [
+        { tool: "setProductPrice", args: { name: "ผัดกระเพรา", price: 60 } },
+        { tool: "addItem", args: { name: "ผัดกระเพรา", qty: 1 } },
+      ],
+      second.cart, second.products, second.pendingAction
+    );
+    assert.equal(third.pendingAction, null);
+    assert.equal(third.cart.items.length, 2);
+    assert.equal(third.cart.total, 260);
+  });
+});

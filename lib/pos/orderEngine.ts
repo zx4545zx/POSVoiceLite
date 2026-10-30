@@ -320,11 +320,26 @@ export function executeMultiplePOSTools(
   const responseTexts: string[] = [];
   let lastProductSave: Product | undefined = undefined;
 
-  for (const action of actions) {
+  const queue = [...actions];
+  let carriedRest = initialPendingAction?.rest ?? [];
+
+  while (queue.length > 0) {
+    const action = queue.shift()!;
     const res = executePOSTool(action, cart, products, pendingAction);
     cart = res.cart;
     products = res.products;
+    const prevPending = pendingAction;
     pendingAction = res.pendingAction;
+    if (prevPending && !pendingAction) {
+      // Pending price resolved: continue with what the same utterance left behind
+      queue.unshift(...carriedRest);
+      carriedRest = [];
+    } else if (pendingAction && pendingAction !== prevPending) {
+      // New "price?" question: park the remaining actions until it is answered
+      pendingAction = { ...pendingAction, rest: [...queue] };
+      if (res.responseText) responseTexts.push(res.responseText);
+      break;
+    }
     if (res.completedOrder) {
       completedOrder = res.completedOrder;
     }

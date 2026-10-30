@@ -299,6 +299,16 @@ export function parseFastPath(
     addCandidate = addCandidate.replace(new RegExp(`\\s*${classifier}$`), "");
   }
 
+  // Several items in one utterance: "ต้มยำกุ้ง 2 ผัดกระเพรา 1"
+  const multi = splitMultiItem(addCandidate);
+  if (multi) {
+    return {
+      actions: multi.map((m) => ({ tool: "addItem" as const, args: m })),
+      confidence: "medium",
+      matchedRule: "addItem_multiple",
+    };
+  }
+
   // Check known products exact or prefix match
   for (const prod of knownProducts) {
     if (addCandidate.startsWith(prod.name)) {
@@ -333,6 +343,31 @@ export function parseFastPath(
 
   // Fast path not confident -> fallback to Gemini
   return null;
+}
+
+/**
+ * Splits "ต้มยำกุ้ง 2 ผัดกระเพรา 1" into [{name, qty}, ...]. Quantities must be arabic digits
+ * or whitespace-separated Thai number words, so names containing number-like syllables stay intact.
+ * Returns null unless the whole input is consumed as 2+ "name qty" pairs.
+ */
+function splitMultiItem(input: string): { name: string; qty: number }[] | null {
+  const tokens = input.replace(/(\d+)/g, " $1 ").split(/\s+/).filter(Boolean);
+  const items: { name: string; qty: number }[] = [];
+  let nameParts: string[] = [];
+
+  for (let i = 0; i < tokens.length; i++) {
+    const qty = /^\d+$/.test(tokens[i]) ? parseInt(tokens[i], 10) : parseThaiNumber(tokens[i]);
+    if (qty === null || qty <= 0) {
+      nameParts.push(tokens[i]);
+      continue;
+    }
+    if (nameParts.length === 0) return null;
+    items.push({ name: nameParts.join(" "), qty });
+    nameParts = [];
+    if (CLASSIFIERS.includes(tokens[i + 1])) i++;
+  }
+
+  return nameParts.length === 0 && items.length >= 2 ? items : null;
 }
 
 /**

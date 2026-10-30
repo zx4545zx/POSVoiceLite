@@ -169,3 +169,26 @@ describe("Fast Path Intent Parser", () => {
     }
   });
 });
+
+describe("multiple items in one utterance", () => {
+  test("splits 'ต้มยำกุ้ง 2 ผัดกระเพรา 1' into two addItem actions", () => {
+    const r = parseFastPath("ต้มยำกุ้ง 2 ผัดกระเพรา 1", null, []);
+    assert.deepEqual(r?.actions, [
+      { tool: "addItem", args: { name: "ต้มยำกุ้ง", qty: 2 } },
+      { tool: "addItem", args: { name: "ผัดกระเพรา", qty: 1 } },
+    ]);
+  });
+
+  test("handles Thai number words with spaces and classifiers", () => {
+    const r = parseFastPath("ขอ ต้มยำกุ้ง สอง จาน ผัดกระเพรา หนึ่ง", null, []);
+    assert.deepEqual(r?.actions, [
+      { tool: "addItem", args: { name: "ต้มยำกุ้ง", qty: 2 } },
+      { tool: "addItem", args: { name: "ผัดกระเพรา", qty: 1 } },
+    ]);
+  });
+
+  test("single item still takes the single-item path", () => {
+    const r = parseFastPath("ชาเขียว 2", null, []);
+    assert.equal(r?.matchedRule, "addItem_trailingQuantity");
+  });
+});

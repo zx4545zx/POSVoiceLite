@@ -37,6 +37,8 @@ export type PendingAction =
       type: "WAITING_PRODUCT_PRICE";
       productName: string;
       qty: number;
+      /** Actions from the same utterance still to run once this price is answered */
+      rest?: POSToolAction[];
     }
   | null;
 
