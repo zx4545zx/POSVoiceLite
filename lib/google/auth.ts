@@ -2,9 +2,19 @@ import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 
 const COOKIE_NAME = "pos_session";
-const SECRET_KEY = new TextEncoder().encode(
-  process.env.SESSION_SECRET || "pos-voice-lite-secret-key-32-chars-long!"
-);
+const OAUTH_STATE_COOKIE = "pos_oauth_state";
+
+// Resolved lazily so `next build` doesn't need the secret; production refuses to run without it.
+function getSecretKey(): Uint8Array {
+  const secret = process.env.SESSION_SECRET;
+  if (!secret || secret.length < 32) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("SESSION_SECRET must be set to at least 32 characters");
+    }
+    return new TextEncoder().encode("dev-only-secret-key-not-for-production!!");
+  }
+  return new TextEncoder().encode(secret);
+}
 
 export interface SessionData {
   user: {
@@ -175,14 +185,14 @@ export function decodeIdToken(idToken: string): {
 }
 
 /**
- * Creates encrypted JWT session token
+ * Creates signed (not encrypted) JWT session token
  */
 export async function signSession(sessionData: SessionData): Promise<string> {
   return await new SignJWT({ ...sessionData })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime("30d")
-    .sign(SECRET_KEY);
+    .sign(getSecretKey());
 }
 
 /**
@@ -190,7 +200,7 @@ export async function signSession(sessionData: SessionData): Promise<string> {
  */
 export async function verifySession(token: string): Promise<SessionData | null> {
   try {
-    const { payload } = await jwtVerify(token, SECRET_KEY);
+    const { payload } = await jwtVerify(token, getSecretKey());
     return payload as unknown as SessionData;
   } catch {
     return null;
@@ -211,4 +221,4 @@ export async function getCurrentSession(): Promise<SessionData | null> {
   }
 }
 
-export { COOKIE_NAME };
+export { COOKIE_NAME, OAUTH_STATE_COOKIE };

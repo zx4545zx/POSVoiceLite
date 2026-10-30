@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback } from "react";
 
 export interface UseSpeechSynthesisOptions {
   voiceEnabled?: boolean;
@@ -11,14 +11,6 @@ export function useSpeechSynthesis({
   voiceEnabled = true,
   lang = "th-TH",
 }: UseSpeechSynthesisOptions = {}) {
-  const isSupportedRef = useRef(false);
-
-  useEffect(() => {
-    if (typeof window !== "undefined" && "speechSynthesis" in window) {
-      isSupportedRef.current = true;
-    }
-  }, []);
-
   const speak = useCallback(
     (text: string) => {
       if (!voiceEnabled || !text || typeof window === "undefined" || !("speechSynthesis" in window)) {
@@ -58,6 +50,5 @@ export function useSpeechSynthesis({
   return {
     speak,
     stop,
-    isSupported: isSupportedRef.current,
   };
 }

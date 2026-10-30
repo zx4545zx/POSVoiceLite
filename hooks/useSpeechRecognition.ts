@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useSyncExternalStore } from "react";
 
 // Types for Web Speech API
 interface SpeechRecognitionEventLike {
@@ -54,15 +54,20 @@ export function useSpeechRecognition({
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState("");
   const [interimTranscript, setInterimTranscript] = useState("");
-  const [isSupported, setIsSupported] = useState(true);
+  const isSupported = useSyncExternalStore(
+    () => () => {},
+    () => Boolean(window.SpeechRecognition || window.webkitSpeechRecognition),
+    () => true
+  );
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
   const onResultRef = useRef(onResult);
-  onResultRef.current = onResult;
-
   const onErrorRef = useRef(onError);
-  onErrorRef.current = onError;
+  useEffect(() => {
+    onResultRef.current = onResult;
+    onErrorRef.current = onError;
+  });
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -70,10 +75,7 @@ export function useSpeechRecognition({
     const SpeechRecognitionClass =
       window.SpeechRecognition || window.webkitSpeechRecognition;
 
-    if (!SpeechRecognitionClass) {
-      setIsSupported(false);
-      return;
-    }
+    if (!SpeechRecognitionClass) return;
 
     try {
       const recognition = new SpeechRecognitionClass();
@@ -126,7 +128,6 @@ export function useSpeechRecognition({
       recognitionRef.current = recognition;
     } catch (e) {
       console.error("Failed to initialize SpeechRecognition:", e);
-      setIsSupported(false);
     }
 
     return () => {

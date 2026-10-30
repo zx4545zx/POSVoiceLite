@@ -29,7 +29,14 @@ export async function POST(req: NextRequest) {
   }
 
   const product: Product = await req.json();
-  if (!product || !product.name) {
+  if (
+    !product ||
+    typeof product.name !== "string" ||
+    !product.name.trim() ||
+    typeof product.price !== "number" ||
+    !Number.isFinite(product.price) ||
+    product.price < 0
+  ) {
     return NextResponse.json({ error: "Invalid product data" }, { status: 400 });
   }
 

@@ -3,6 +3,7 @@ import {
   exchangeCodeForTokens,
   signSession,
   COOKIE_NAME,
+  OAUTH_STATE_COOKIE,
 } from "@/lib/google/auth";
 import { ensurePOSSpreadsheet } from "@/lib/google/sheets";
 import { NextRequest, NextResponse } from "next/server";
@@ -12,6 +13,11 @@ export async function GET(req: NextRequest) {
   const searchParams = req.nextUrl.searchParams;
   const code = searchParams.get("code");
   const error = searchParams.get("error");
+
+  const expectedState = req.cookies.get(OAUTH_STATE_COOKIE)?.value;
+  if (!expectedState || searchParams.get("state") !== expectedState) {
+    return NextResponse.redirect(new URL("/?auth_error=invalid_state", origin));
+  }
 
   if (error || !code) {
     console.error("Google OAuth error:", error);
@@ -61,6 +67,7 @@ export async function GET(req: NextRequest) {
       path: "/",
     });
 
+    res.cookies.delete(OAUTH_STATE_COOKIE);
     return res;
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "auth_failed";

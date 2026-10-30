@@ -10,7 +10,13 @@ export async function POST(req: NextRequest) {
   }
 
   const order: Order = await req.json();
-  if (!order || !order.orderId || order.total === undefined) {
+  if (
+    !order ||
+    typeof order.orderId !== "string" ||
+    typeof order.total !== "number" ||
+    !Number.isFinite(order.total) ||
+    order.total < 0
+  ) {
     return NextResponse.json({ error: "Invalid order data" }, { status: 400 });
   }
 

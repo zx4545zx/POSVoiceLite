@@ -1,8 +1,7 @@
 import { COOKIE_NAME } from "@/lib/google/auth";
 import { NextRequest, NextResponse } from "next/server";
 
-export async function POST(req: NextRequest) {
-  const origin = req.nextUrl.origin;
+export async function POST() {
   const res = NextResponse.json({ success: true });
   res.cookies.set(COOKIE_NAME, "", {
     httpOnly: true,

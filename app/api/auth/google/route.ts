@@ -1,16 +1,27 @@
-import { getGoogleOAuthUrl, isGoogleOAuthConfigured } from "@/lib/google/auth";
+import {
+  getGoogleOAuthUrl,
+  isGoogleOAuthConfigured,
+  OAUTH_STATE_COOKIE,
+} from "@/lib/google/auth";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(req: NextRequest) {
   const origin = req.nextUrl.origin;
 
   if (!isGoogleOAuthConfigured()) {
-    // If Google OAuth is not yet configured, redirect to login page with setup notice or demo prompt
     return NextResponse.redirect(
       new URL("/?auth_error=oauth_not_configured", origin)
     );
   }
 
-  const authUrl = getGoogleOAuthUrl(origin);
-  return NextResponse.redirect(authUrl);
+  const state = crypto.randomUUID();
+  const res = NextResponse.redirect(getGoogleOAuthUrl(origin, state));
+  res.cookies.set(OAUTH_STATE_COOKIE, state, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge: 10 * 60,
+    path: "/",
+  });
+  return res;
 }

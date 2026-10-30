@@ -1,8 +1,15 @@
-import { signSession, COOKIE_NAME } from "@/lib/google/auth";
+import { signSession, COOKIE_NAME, isGoogleOAuthConfigured } from "@/lib/google/auth";
 import { NextRequest, NextResponse } from "next/server";
 
-export async function POST(req: NextRequest) {
-  const origin = req.nextUrl.origin;
+// Demo sessions are unauthenticated; only allow them when real login isn't configured.
+const demoDisabled = () =>
+  isGoogleOAuthConfigured()
+    ? NextResponse.json({ error: "Demo mode disabled" }, { status: 403 })
+    : null;
+
+export async function POST() {
+  const blocked = demoDisabled();
+  if (blocked) return blocked;
 
   const sessionJwt = await signSession({
     user: {
@@ -28,6 +35,8 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
+  const blocked = demoDisabled();
+  if (blocked) return blocked;
   const origin = req.nextUrl.origin;
   const sessionJwt = await signSession({
     user: {

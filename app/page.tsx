@@ -58,11 +58,13 @@ export default function Home() {
 
   // References for latest state inside callbacks
   const cartRef = useRef(cart);
-  cartRef.current = cart;
   const productsRef = useRef(products);
-  productsRef.current = products;
   const pendingActionRef = useRef(pendingAction);
-  pendingActionRef.current = pendingAction;
+  useEffect(() => {
+    cartRef.current = cart;
+    productsRef.current = products;
+    pendingActionRef.current = pendingAction;
+  });
 
   // Text to Speech
   const { speak } = useSpeechSynthesis({
@@ -105,6 +107,7 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time session fetch on mount
     loadSession();
   }, [loadSession]);
 
@@ -242,8 +245,6 @@ export default function Home() {
     interimTranscript,
     isSupported,
     errorMessage,
-    startListening,
-    stopListening,
     toggleListening,
   } = useSpeechRecognition({
     lang: settings.language || "th-TH",

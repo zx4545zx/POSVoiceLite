@@ -152,7 +152,7 @@ export async function fetchProductsFromSheet(accessToken: string, spreadsheetId:
  * Appends a completed order to the Orders sheet
  */
 export async function appendOrderToSheet(accessToken: string, spreadsheetId: string, order: Order): Promise<boolean> {
-  const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/Orders!A:F:append?valueInputOption=USER_ENTERED`;
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/Orders!A:F:append?valueInputOption=RAW`;
   const res = await fetch(url, {
     method: "POST",
     headers: {
@@ -205,7 +205,7 @@ export async function saveProductToSheet(
     if (targetIndex >= 0) {
       // Row 2 is index 0 -> row number is targetIndex + 2
       const rowNum = targetIndex + 2;
-      const updateUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/Products!A${rowNum}:F${rowNum}?valueInputOption=USER_ENTERED`;
+      const updateUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/Products!A${rowNum}:F${rowNum}?valueInputOption=RAW`;
       const updateRes = await fetch(updateUrl, {
         method: "PUT",
         headers: {
@@ -231,7 +231,7 @@ export async function saveProductToSheet(
   }
 
   // Not found: append new row
-  const appendUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/Products!A:F:append?valueInputOption=USER_ENTERED`;
+  const appendUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/Products!A:F:append?valueInputOption=RAW`;
   const appendRes = await fetch(appendUrl, {
     method: "POST",
     headers: {
@@ -301,7 +301,7 @@ export async function saveSettingsToSheet(
   const current = await fetchSettingsFromSheet(accessToken, spreadsheetId);
   const updated: Settings = { ...current, ...settings };
 
-  const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/Settings!A2:C2?valueInputOption=USER_ENTERED`;
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/Settings!A2:C2?valueInputOption=RAW`;
   const res = await fetch(url, {
     method: "PUT",
     headers: {

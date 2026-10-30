@@ -1,8 +1,9 @@
 import { GoogleGenAI } from "@google/genai";
+import { getCurrentSession } from "@/lib/google/auth";
 import { PendingAction, POSToolAction, Product } from "@/types/pos";
 import { NextRequest, NextResponse } from "next/server";
 
-const apiKey = process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY || "";
+const apiKey = process.env.GEMINI_API_KEY || "";
 const modelName = process.env.GEMINI_MODEL || "gemini-2.5-flash";
 
 const functionDeclarations = [
@@ -102,7 +103,14 @@ const functionDeclarations = [
   },
 ];
 
+const MAX_MESSAGE_LENGTH = 300;
+const MAX_PRODUCTS = 200;
+
 export async function POST(req: NextRequest) {
+  if (!(await getCurrentSession())) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
     const body = await req.json();
     const {
@@ -115,8 +123,8 @@ export async function POST(req: NextRequest) {
       products?: Product[];
     } = body;
 
-    if (!message || typeof message !== "string") {
-      return NextResponse.json({ error: "Missing message" }, { status: 400 });
+    if (!message || typeof message !== "string" || message.length > MAX_MESSAGE_LENGTH) {
+      return NextResponse.json({ error: "Invalid message" }, { status: 400 });
     }
 
     if (!apiKey) {
@@ -130,7 +138,8 @@ export async function POST(req: NextRequest) {
     const ai = new GoogleGenAI({ apiKey });
 
     // Known products list as context
-    const productListContext = products
+    const productListContext = (Array.isArray(products) ? products : [])
+      .slice(0, MAX_PRODUCTS)
       .map((p) => `${p.name} (฿${p.price})`)
       .join(", ");
 
@@ -186,10 +195,6 @@ Known products in menu: ${productListContext || "ยังไม่มีรา�
     });
   } catch (err: unknown) {
     console.error("Gemini AI API error:", err);
-    const message = err instanceof Error ? err.message : "AI interpretation error";
-    return NextResponse.json({
-      actions: [],
-      error: message,
-    });
+    return NextResponse.json({ actions: [], error: "AI interpretation error" });
   }
 }
