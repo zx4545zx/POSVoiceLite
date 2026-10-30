@@ -526,7 +526,7 @@ export default function Home() {
 
   // 3. Main Voice POS Interface
   return (
-    <main className="min-h-dvh w-full max-w-md md:max-w-2xl lg:max-w-5xl mx-auto bg-white flex flex-col justify-between lg:grid lg:grid-cols-[1fr_400px] lg:grid-rows-[auto_1fr] lg:justify-normal shadow-2xl overflow-hidden relative">
+    <main className="h-dvh w-full max-w-md md:max-w-2xl lg:max-w-5xl mx-auto bg-white flex flex-col justify-between lg:grid lg:grid-cols-[1fr_400px] lg:grid-rows-[auto_1fr] lg:justify-normal shadow-2xl overflow-hidden relative">
       {/* Header with shop name & settings */}
       <div className="lg:col-span-2">
         <Header
