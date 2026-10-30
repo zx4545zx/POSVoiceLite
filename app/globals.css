@@ -10,6 +10,9 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  /* Used across components but missing from Tailwind's palette; without them borders fall back to currentColor */
+  --color-gray-150: #eceef1;
+  --color-emerald-150: #bff7dd;
   --font-sans: var(--font-kanit), ui-sans-serif, system-ui, sans-serif;
 }
 
