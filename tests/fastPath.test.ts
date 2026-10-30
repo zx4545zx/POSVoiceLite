@@ -7,7 +7,7 @@ import {
   extractWakeCommand,
   parseWakeWords,
 } from "../lib/nlp/fastPath";
-import { collectUnsent, endpointDelay, FINAL_COMPLETE_MS, FINAL_WAIT_MORE_MS, SPEECH_END_MS, SPEECH_WAIT_MORE_MS, tailAfter } from "../lib/nlp/endpointing";
+import { collectUnsent, dedupeUtterance, DUPLICATE_WINDOW_MS, endpointDelay, FINAL_COMPLETE_MS, FINAL_WAIT_MORE_MS, SPEECH_END_MS, SPEECH_WAIT_MORE_MS, tailAfter } from "../lib/nlp/endpointing";
 import { Product } from "../types/pos";
 
 describe("Thai Number Parser", () => {
@@ -312,5 +312,28 @@ describe("merging split speech results", () => {
     assert.equal(endpointDelay("เพิ่มโค้ก", true), FINAL_WAIT_MORE_MS);
     assert.equal(endpointDelay("เพิ่มโค้ก", false), SPEECH_WAIT_MORE_MS);
     assert.equal(endpointDelay("เพิ่มโค้ก 2", false), SPEECH_END_MS);
+  });
+});
+
+describe("duplicate speech deliveries", () => {
+  const prev = { text: "นมสด 2", at: 1000 };
+
+  test("the same phrase again right after is dropped", () => {
+    assert.equal(dedupeUtterance("นมสด 2", prev, 2500), "");
+  });
+
+  test("a result repeating the previous text keeps only the new words", () => {
+    assert.equal(dedupeUtterance("นมสด 2 โค้ก 1", prev, 2500), "โค้ก 1");
+  });
+
+  test("the phrase doubled inside one result is collapsed", () => {
+    assert.equal(dedupeUtterance("นมสด 2นมสด 2", undefined, 0), "นมสด 2");
+    assert.equal(dedupeUtterance("นมสด 2 นมสด 2", undefined, 0), "นมสด 2");
+  });
+
+  test("a deliberate repeat after the window, or a different phrase, goes through", () => {
+    assert.equal(dedupeUtterance("นมสด 2", prev, 1000 + DUPLICATE_WINDOW_MS + 1), "นมสด 2");
+    assert.equal(dedupeUtterance("โค้ก 1", prev, 1500), "โค้ก 1");
+    assert.equal(dedupeUtterance("  ", prev, 1500), "");
   });
 });

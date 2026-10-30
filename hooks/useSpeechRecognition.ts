@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback, useSyncExternalStore } from "react";
-import { collectUnsent, endpointDelay } from "@/lib/nlp/endpointing";
+import { collectUnsent, dedupeUtterance, endpointDelay } from "@/lib/nlp/endpointing";
 
 // Types for Web Speech API
 interface SpeechRecognitionEventLike {
@@ -93,8 +93,11 @@ export function useSpeechRecognition({
     const committed = new Map<number, string>();
     let silenceTimer: ReturnType<typeof setTimeout> | undefined;
     let pending: { tail: string; snapshot: [number, string][] } | null = null;
+    let lastEmit: { text: string; at: number } | undefined;
     const emit = (text: string) => {
-      const t = text.trim();
+      const raw = text.trim();
+      const t = dedupeUtterance(raw, lastEmit, Date.now());
+      if (raw) lastEmit = { text: dedupeUtterance(raw, undefined, 0), at: Date.now() };
       if (!t) return;
       setTranscript(t);
       setInterimTranscript("");
@@ -163,15 +166,17 @@ export function useSpeechRecognition({
 
       recognition.onresult = (event: SpeechRecognitionEventLike) => {
         clearTimeout(silenceTimer);
-        if (shouldIgnoreRef.current?.()) {
-          pending = null;
-          setInterimTranscript("");
-          return;
-        }
         const results = Array.from({ length: event.results.length }, (_, i) => {
           const r = event.results[i];
           return r ? { text: r[0].transcript, isFinal: r.isFinal } : undefined;
         }) as { text: string; isFinal: boolean }[];
+        if (shouldIgnoreRef.current?.()) {
+          // Our own voice: mark it as used, otherwise it comes back later glued to the user's next phrase
+          results.forEach((r, i) => r && committed.set(i, r.text));
+          pending = null;
+          setInterimTranscript("");
+          return;
+        }
         const { tail, snapshot, lastIsFinal } = collectUnsent(results, committed);
         if (!tail.trim()) {
           pending = null;

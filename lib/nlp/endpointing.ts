@@ -48,3 +48,23 @@ export function collectUnsent(results: SpeechResultLike[], sent: Map<number, str
   });
   return { tail, snapshot, lastIsFinal: results.length > 0 && !!results[results.length - 1]?.isFinal };
 }
+
+/** How long an identical phrase counts as a duplicate delivery of the one just handled */
+export const DUPLICATE_WINDOW_MS = 3000;
+
+/**
+ * Some browsers (notably Chrome on Android in continuous mode) deliver the same text again: as a second
+ * identical result, as a result that repeats the previous text plus new words, or as "AA" in one result.
+ * Running those twice doubles the order ("นมสด 2" -> 4). Returns the part of `raw` that is really new.
+ */
+export function dedupeUtterance(raw: string, last: { text: string; at: number } | undefined, now: number): string {
+  const t = raw.trim();
+  if (!t) return "";
+  const doubled = t.match(/^(.{3,}?)\s?\1$/);
+  const cur = doubled ? doubled[1] : t;
+  if (last && now - last.at < DUPLICATE_WINDOW_MS) {
+    if (cur === last.text) return "";
+    if (cur.startsWith(last.text)) return cur.slice(last.text.length).trim();
+  }
+  return cur;
+}
