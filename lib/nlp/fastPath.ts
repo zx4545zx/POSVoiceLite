@@ -410,8 +410,19 @@ export function parseFastPath(
  * or whitespace-separated Thai number words, so names containing number-like syllables stay intact.
  * Returns null unless the whole input is consumed as 2+ "name qty" pairs.
  */
+const THAI_NUMBER_SUFFIX = /^(.{2,}?)(หนึ่ง|สอง|สาม|สี่|ห้า|หก|เจ็ด|แปด|เก้า|สิบ|ยี่สิบ|สามสิบ|สี่สิบ|ห้าสิบ)$/;
+
 function splitMultiItem(input: string): { name: string; qty: number }[] | null {
-  const tokens = input.replace(/(\d+)/g, " $1 ").split(/\s+/).filter(Boolean);
+  const tokens = input
+    .replace(/(\d+)/g, " $1 ")
+    .split(/\s+/)
+    .filter(Boolean)
+    // "กะเพราหมูสอง" -> "กะเพราหมู", "2" (a glued Thai number word at the end of a name)
+    .flatMap((tok) => {
+      if (/^\d+$/.test(tok) || parseThaiNumber(tok) !== null) return [tok];
+      const m = tok.match(THAI_NUMBER_SUFFIX);
+      return m ? [m[1], String(parseThaiNumber(m[2]))] : [tok];
+    });
   const items: { name: string; qty: number }[] = [];
   let nameParts: string[] = [];
 

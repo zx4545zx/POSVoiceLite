@@ -335,9 +335,12 @@ export default function Home() {
     isSupported,
     errorMessage,
     toggleListening,
+    finishPhrase,
   } = useSpeechRecognition({
     lang: settings.language || "th-TH",
     alwaysOn: wakeMode,
+    // Tap-to-talk and the open-mic part of hands-free are patient; the background wake-word listening is not
+    isPatient: () => !wakeModeRef.current || Date.now() < sessionUntilRef.current,
     shouldIgnore: () => wakeModeRef.current && isSpeaking(),
     onError: (err) => {
       if (err === "not-allowed" || err === "service-not-allowed") changeWakeMode(false);
@@ -375,6 +378,7 @@ export default function Home() {
   const handleMicToggle = () => {
     if (wakeMode) {
       if (wakeActive) {
+        finishPhrase(); // "I'm done": run what was heard (while the session still counts), then close the mic UI
         endSession(true);
       } else {
         startSession(10000);

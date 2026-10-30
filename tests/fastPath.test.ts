@@ -7,7 +7,7 @@ import {
   extractWakeCommand,
   parseWakeWords,
 } from "../lib/nlp/fastPath";
-import { collectUnsent, dedupeUtterance, DUPLICATE_WINDOW_MS, endpointDelay, FINAL_COMPLETE_MS, FINAL_WAIT_MORE_MS, SPEECH_END_MS, SPEECH_WAIT_MORE_MS, tailAfter } from "../lib/nlp/endpointing";
+import { collectUnsent, dedupeUtterance, DUPLICATE_WINDOW_MS, endpointDelay, FINAL_COMPLETE_MS, FINAL_WAIT_MORE_MS, PATIENT_MS, PATIENT_WAIT_MORE_MS, SPEECH_END_MS, SPEECH_WAIT_MORE_MS, tailAfter } from "../lib/nlp/endpointing";
 import { Product } from "../types/pos";
 
 describe("Thai Number Parser", () => {
@@ -293,7 +293,7 @@ describe("merging split speech results", () => {
       [{ text: "น้องครับเพิ่มผัดกระเพรา", isFinal: true }, { text: "2", isFinal: false }],
       new Map()
     );
-    assert.equal(tail, "น้องครับเพิ่มผัดกระเพรา2");
+    assert.equal(tail, "น้องครับเพิ่มผัดกระเพรา 2");
     assert.equal(lastIsFinal, false);
   });
 
@@ -360,7 +360,7 @@ describe("cumulative speech results", () => {
       [{ text: "เพิ่มผัดกระเพรา", isFinal: true }, { text: "2", isFinal: false }],
       new Map()
     );
-    assert.equal(tail, "เพิ่มผัดกระเพรา2");
+    assert.equal(tail, "เพิ่มผัดกระเพรา 2");
   });
 
   test("three cumulative results end up as the last, longest one", () => {
@@ -397,5 +397,47 @@ describe("price answers while waiting for a price", () => {
     const r = ask("โค้ก 2");
     assert.notEqual(r?.matchedRule, "pending_price_response");
     assert.equal((r?.actions[0] as { tool: string } | undefined)?.tool, "addItem");
+  });
+});
+
+describe("patient endpointing and multi-item orders", () => {
+  test("patient mode waits through pauses, even after a browser-final result", () => {
+    assert.equal(endpointDelay("กะเพราหมู 2", true, true), PATIENT_MS);
+    assert.equal(endpointDelay("กะเพราหมู", true, true), PATIENT_WAIT_MORE_MS);
+    assert.ok(PATIENT_MS > SPEECH_END_MS && PATIENT_WAIT_MORE_MS > PATIENT_MS);
+  });
+
+  test("items spoken with pauses are joined into one phrase", () => {
+    const { tail } = collectUnsent(
+      [{ text: "กะเพราหมู 2", isFinal: true }, { text: "โค้ก 1", isFinal: true }, { text: "ชาเย็น 3", isFinal: false }],
+      new Map()
+    );
+    assert.equal(tail, "กะเพราหมู 2 โค้ก 1 ชาเย็น 3");
+  });
+
+  test("several items with digits", () => {
+    const r = parseFastPath("กะเพราหมู 2 โค้ก 1 ชาเย็น 3", null, []);
+    assert.deepEqual(r?.actions.map((a) => (a as { args: unknown }).args), [
+      { name: "กะเพราหมู", qty: 2 }, { name: "โค้ก", qty: 1 }, { name: "ชาเย็น", qty: 3 },
+    ]);
+  });
+
+  test("several items with number words glued to the names", () => {
+    const r = parseFastPath("กะเพราหมูสอง โค้กหนึ่ง ชาเย็นสาม", null, []);
+    assert.deepEqual(r?.actions.map((a) => (a as { args: unknown }).args), [
+      { name: "กะเพราหมู", qty: 2 }, { name: "โค้ก", qty: 1 }, { name: "ชาเย็น", qty: 3 },
+    ]);
+  });
+
+  test("mixed digits and glued number words, with a wake word and polite ending", () => {
+    const r = parseFastPath("น้องครับ กะเพราหมูสอง โค้ก 1 ด้วยครับ", null, []);
+    assert.deepEqual(r?.actions.map((a) => (a as { args: unknown }).args), [
+      { name: "กะเพราหมู", qty: 2 }, { name: "โค้ก", qty: 1 },
+    ]);
+  });
+
+  test("a single item is unchanged", () => {
+    const r = parseFastPath("กะเพราหมูสอง", null, []);
+    assert.equal(r?.matchedRule, "addItem_trailingQuantity");
   });
 });

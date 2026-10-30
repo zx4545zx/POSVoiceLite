@@ -45,6 +45,9 @@ export interface UseSpeechRecognitionOptions {
   lang?: string;
   /** Keep the mic open: restart recognition whenever the browser ends it */
   alwaysOn?: boolean;
+  /** True while the user is deliberately speaking into an open mic, so pauses between items don't end the
+   *  phrase. Defaults to "yes" for tap-to-talk (not always-on). */
+  isPatient?: () => boolean;
   /** Drop recognition results while this returns true (e.g. our own TTS is playing) */
   shouldIgnore?: () => boolean;
   onResult?: (transcript: string) => void;
@@ -54,6 +57,7 @@ export interface UseSpeechRecognitionOptions {
 export function useSpeechRecognition({
   lang = "th-TH",
   alwaysOn = false,
+  isPatient,
   shouldIgnore,
   onResult,
   onError,
@@ -73,8 +77,11 @@ export function useSpeechRecognition({
   const onErrorRef = useRef(onError);
   const alwaysOnRef = useRef(alwaysOn);
   const shouldIgnoreRef = useRef(shouldIgnore);
+  const isPatientRef = useRef(isPatient);
+  const flushRef = useRef<() => void>(() => {});
   useEffect(() => {
     shouldIgnoreRef.current = shouldIgnore;
+    isPatientRef.current = isPatient;
     onResultRef.current = onResult;
     onErrorRef.current = onError;
     alwaysOnRef.current = alwaysOn;
@@ -127,6 +134,8 @@ export function useSpeechRecognition({
           }
         }
       };
+
+      flushRef.current = flush;
 
       recognition.onstart = () => {
         committed.clear();
@@ -185,7 +194,8 @@ export function useSpeechRecognition({
         }
         pending = { tail, snapshot };
         setInterimTranscript(tail);
-        silenceTimer = setTimeout(flush, endpointDelay(tail, lastIsFinal));
+        const patient = isPatientRef.current ? isPatientRef.current() : !alwaysOnRef.current;
+        silenceTimer = setTimeout(flush, endpointDelay(tail, lastIsFinal, patient));
       };
 
       recognitionRef.current = recognition;
@@ -216,6 +226,9 @@ export function useSpeechRecognition({
       console.warn("Could not start recognition:", e);
     }
   }, []);
+
+  /** The user says they are done: hand on whatever has been heard so far, right now */
+  const finishPhrase = useCallback(() => flushRef.current(), []);
 
   const stopListening = useCallback(() => {
     if (!recognitionRef.current) return;
@@ -253,6 +266,7 @@ export function useSpeechRecognition({
     errorMessage,
     startListening,
     stopListening,
+    finishPhrase,
     toggleListening,
     setTranscript,
   };

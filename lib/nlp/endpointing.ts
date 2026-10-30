@@ -5,6 +5,10 @@ export const SPEECH_WAIT_MORE_MS = 2500;
 /** When the browser has already declared the text final it has waited for a pause itself, so wait less */
 export const FINAL_COMPLETE_MS = 250;
 export const FINAL_WAIT_MORE_MS = 1500;
+/** The user is deliberately speaking into an open mic (tap-to-talk, or after the wake word): wait through
+ *  the pauses between items of a multi-item order. Tapping the mic again ends it at once. */
+export const PATIENT_MS = 2000;
+export const PATIENT_WAIT_MORE_MS = 3000;
 
 const LOOKS_COMPLETE =
   /(\d|[๐-๙]|ศูนย์|หนึ่ง|เอ็ด|สอง|สาม|สี่|ห้า|หก|เจ็ด|แปด|เก้า|สิบ|ร้อย|พัน|บาท|จาน|ชาม|แก้ว|ขวด|กล่อง|ถุง|ชุด|ที่|อัน|ชิ้น|ฟอง|รายการ|ห่อ|ถ้วย|คิดเงิน|ปิดบิล|เช็คบิล|เก็บเงิน|ชำระเงิน|ล้างบิล|เคลียร์|ยกเลิก|เท่าไหร่|เท่าไร|ออก|ด้วย|ครับ|ค่ะ|คะ|นะ|จ้า|หน่อย)\s*$/;
@@ -13,8 +17,9 @@ const LOOKS_COMPLETE =
  * How long to wait after the last result before acting on it. People often pause before saying the
  * quantity, so a phrase that doesn't end in a number, classifier or known command word waits longer.
  */
-export function endpointDelay(text: string, browserSaidFinal = false): number {
+export function endpointDelay(text: string, browserSaidFinal = false, patient = false): number {
   const complete = LOOKS_COMPLETE.test(text.trim());
+  if (patient) return complete ? PATIENT_MS : PATIENT_WAIT_MORE_MS; // the browser's own "final" doesn't shorten this
   if (browserSaidFinal) return complete ? FINAL_COMPLETE_MS : FINAL_WAIT_MORE_MS;
   return complete ? SPEECH_END_MS : SPEECH_WAIT_MORE_MS;
 }
@@ -50,7 +55,7 @@ export function collectUnsent(results: SpeechResultLike[], sent: Map<number, str
     const piece = tailAfter(sent.get(i), r.text);
     if (!piece) return;
     if (piece.startsWith(tail)) tail = piece;
-    else if (!tail.endsWith(piece)) tail += piece;
+    else if (!tail.endsWith(piece)) tail = tail + (/\s$/.test(tail) || /^\s/.test(piece) ? "" : " ") + piece;
   });
   return { tail, snapshot, lastIsFinal: results.length > 0 && !!results[results.length - 1]?.isFinal };
 }
