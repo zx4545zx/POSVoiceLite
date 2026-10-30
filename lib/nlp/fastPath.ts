@@ -190,6 +190,9 @@ export function parseFastPath(
   const cleaned = cleanVoiceCommand(rawInput);
   if (!cleaned) return null;
 
+  // References to earlier turns need conversation context rather than a guessed product name.
+  if (/(เหมือนเดิม|อย่างเดิม|อันเดิม|รายการเดิม|เมนูเดิม|อันนั้น|รายการนั้น|เมนูนั้น)/.test(cleaned)) return null;
+
   // 1. Pending Action: Waiting for product price
   // e.g. "60 บาท", "60", "หกสิบบาท", "ราคา 60"
   if (pendingAction && pendingAction.type === "WAITING_PRODUCT_PRICE") {

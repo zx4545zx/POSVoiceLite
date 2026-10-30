@@ -1,6 +1,7 @@
 import { GoogleGenAI, ThinkingLevel } from "@google/genai";
 import { getCurrentSession } from "@/lib/google/auth";
 import { isModelQuestion, safeModelReply } from "@/lib/nlp/aiReply";
+import { validHistory } from "@/lib/nlp/conversation";
 import { PendingAction, POSToolAction, Product } from "@/types/pos";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -135,14 +136,21 @@ export async function POST(req: NextRequest) {
       message,
       pendingAction,
       products = [],
+      history = [],
     }: {
       message: string;
       pendingAction?: PendingAction;
       products?: Product[];
+      history?: unknown;
     } = body;
 
     if (!message || typeof message !== "string" || message.length > MAX_MESSAGE_LENGTH) {
       return NextResponse.json({ error: "ข้อความไม่ถูกต้อง" }, { status: 400 });
+    }
+
+    const conversation = validHistory(history);
+    if (!conversation) {
+      return NextResponse.json({ error: "ประวัติสนทนาไม่ถูกต้อง" }, { status: 400 });
     }
 
     if (!apiKey) {
@@ -168,7 +176,7 @@ export async function POST(req: NextRequest) {
 
     const systemInstruction = `LANGUAGE RULE: Every word you write must be Thai (ภาษาไทย) only. Never answer in English or any other language. ตอบเป็นภาษาไทยเท่านั้น
 
-You are a friendly conversational assistant for POS Voice Lite, a voice-controlled mobile POS app for Thai restaurants and shops. Answer general questions naturally and concisely in Thai, suitable for speaking aloud.
+You are a friendly conversational assistant for POS Voice Lite, a voice-controlled mobile POS app for Thai restaurants and shops. Answer general questions naturally and concisely in Thai, suitable for speaking aloud. Previous turns describe this bill's conversation and actual POS responses; use them to understand follow-up requests, but never repeat a previous tool action unless requested.
 
 For POS requests:
 1. Interpret the cashier's intent, including indirect or unusual wording, and use the available tool declarations and their descriptions to select the appropriate POS tool calls. Only call tools when the user intends an action or a POS inquiry; ask for clarification if unsure.
@@ -182,7 +190,10 @@ Known products in menu: ${productListContext || "ยังไม่มีรา�
 
     const response = await ai.models.generateContent({
       model: modelName,
-      contents: message,
+      contents: [
+        ...conversation.map(({ role, text }) => ({ role, parts: [{ text }] })),
+        { role: "user", parts: [{ text: message }] },
+      ],
       config: {
         systemInstruction,
         // Intent parsing needs no reasoning; default thinking made Gemma ~3x slower (6s vs 2s)

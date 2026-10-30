@@ -32,6 +32,7 @@ import {
   initialCartState,
 } from "@/lib/pos/orderEngine";
 import { DEFAULT_WAKE_WORDS, extractWakeCommand, parseFastPath } from "@/lib/nlp/fastPath";
+import { appendExchange, ConversationTurn } from "@/lib/nlp/conversation";
 
 /** Speech arriving this soon after a price question is the tail of the order, not the answer */
 const PRICE_ANSWER_GRACE_MS = 1500;
@@ -66,6 +67,8 @@ export default function Home() {
   const cartRef = useRef(cart);
   const productsRef = useRef(products);
   const pendingActionRef = useRef(pendingAction);
+  const historyRef = useRef<ConversationTurn[]>([]);
+  const billVersionRef = useRef(0);
   const pendingSinceRef = useRef(0); // when the current price question appeared
   const pendingNameRef = useRef<string | null>(null);
   useEffect(() => {
@@ -137,6 +140,7 @@ export default function Home() {
       const currentCart = cartRef.current;
       const currentProducts = productsRef.current;
       const currentPending = pendingActionRef.current;
+      const billVersion = billVersionRef.current;
 
       try {
         // Step 1: Fast Path Check (Regex / Local Thai NLP)
@@ -156,6 +160,13 @@ export default function Home() {
             currentProducts,
             currentPending
           );
+
+          if (result.completedOrder || result.clearedOrder) {
+            historyRef.current = [];
+            billVersionRef.current++;
+          } else {
+            historyRef.current = appendExchange(historyRef.current, rawCommand, result.responseText);
+          }
 
           // Update UI state immediately!
           setCart(result.cart);
@@ -200,11 +211,13 @@ export default function Home() {
             message: rawCommand,
             pendingAction: currentPending,
             products: currentProducts,
+            history: historyRef.current,
           }),
         });
 
         if (aiRes.ok) {
           const aiData = await aiRes.json();
+          if (billVersion !== billVersionRef.current) return;
 
           if (aiData.actions && aiData.actions.length > 0) {
             const result = executeMultiplePOSTools(
@@ -213,6 +226,13 @@ export default function Home() {
               currentProducts,
               currentPending
             );
+
+            if (result.completedOrder || result.clearedOrder) {
+              historyRef.current = [];
+              billVersionRef.current++;
+            } else {
+              historyRef.current = appendExchange(historyRef.current, rawCommand, result.responseText);
+            }
 
             // Update UI immediately!
             setCart(result.cart);
@@ -241,6 +261,7 @@ export default function Home() {
               speak(result.responseText);
             }
           } else if (aiData.question) {
+            historyRef.current = appendExchange(historyRef.current, rawCommand, aiData.question);
             // Only keep hands-free listening open when the reply asks for an answer.
             askedQuestionRef.current = Boolean(aiData.isQuestion);
             setLastResponseText(aiData.question);
@@ -397,6 +418,8 @@ export default function Home() {
       products,
       pendingAction
     );
+    billVersionRef.current++;
+    historyRef.current = appendExchange(historyRef.current, `เปลี่ยนจำนวน ${name} เป็น ${qty}`, res.responseText);
     setCart(res.cart);
     setLastResponseText(res.responseText);
     if (res.responseText) speak(res.responseText);
@@ -409,6 +432,8 @@ export default function Home() {
       products,
       pendingAction
     );
+    billVersionRef.current++;
+    historyRef.current = appendExchange(historyRef.current, `ลบ ${name}`, res.responseText);
     setCart(res.cart);
     setLastResponseText(res.responseText);
     if (res.responseText) speak(res.responseText);
@@ -421,6 +446,9 @@ export default function Home() {
       products,
       pendingAction
     );
+    billVersionRef.current++;
+    historyRef.current = [];
+    commandQueueRef.current = [];
     setCart(res.cart);
     setPendingAction(null);
     setLastResponseText(res.responseText);
@@ -437,6 +465,9 @@ export default function Home() {
     setCart(res.cart);
     setLastResponseText(res.responseText);
     if (res.completedOrder) {
+      billVersionRef.current++;
+      historyRef.current = [];
+      commandQueueRef.current = [];
       setCompletedOrder(res.completedOrder);
       fetch("/api/orders", {
         method: "POST",
@@ -458,6 +489,8 @@ export default function Home() {
       pendingAction
     );
 
+    billVersionRef.current++;
+    historyRef.current = appendExchange(historyRef.current, `ตั้งราคา ${name} ${price} บาท`, res.responseText);
     setCart(res.cart);
     setProducts(res.products);
     setPendingAction(null);
@@ -502,6 +535,9 @@ export default function Home() {
   };
 
   const handleLogout = async () => {
+    billVersionRef.current++;
+    historyRef.current = [];
+    commandQueueRef.current = [];
     await fetch("/api/auth/logout", { method: "POST" });
     setSession(null);
     setIsSettingsOpen(false);

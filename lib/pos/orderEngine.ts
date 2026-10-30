@@ -12,6 +12,7 @@ export interface ToolExecutionResult {
   products: Product[];
   pendingAction: PendingAction;
   completedOrder?: Order;
+  clearedOrder?: boolean;
   responseText: string;
   speak: boolean;
   needsProductSave?: Product;
@@ -298,6 +299,7 @@ export function executePOSTool(
     products,
     pendingAction,
     completedOrder,
+    clearedOrder: action.tool === "clearOrder",
     responseText,
     speak: true,
     needsProductSave,
@@ -317,6 +319,7 @@ export function executeMultiplePOSTools(
   let products = initialProducts;
   let pendingAction = initialPendingAction;
   let completedOrder: Order | undefined = undefined;
+  let clearedOrder = false;
   const responseTexts: string[] = [];
   let lastProductSave: Product | undefined = undefined;
 
@@ -343,6 +346,7 @@ export function executeMultiplePOSTools(
     if (res.completedOrder) {
       completedOrder = res.completedOrder;
     }
+    if (res.clearedOrder) clearedOrder = true;
     if (res.needsProductSave) {
       lastProductSave = res.needsProductSave;
     }
@@ -362,6 +366,7 @@ export function executeMultiplePOSTools(
     products,
     pendingAction,
     completedOrder,
+    clearedOrder,
     responseText: finalResponseText,
     speak: true,
     needsProductSave: lastProductSave,
