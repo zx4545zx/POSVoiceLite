@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback, useSyncExternalStore } from "react";
-import { SPEECH_END_MS, tailAfter } from "@/lib/nlp/endpointing";
+import { endpointDelay, tailAfter } from "@/lib/nlp/endpointing";
 
 // Types for Web Speech API
 interface SpeechRecognitionEventLike {
@@ -163,13 +163,13 @@ export function useSpeechRecognition({
 
         if (pending) {
           const { index, text } = pending;
-          setInterimTranscript(tailAfter(committed.get(index), text));
+          const pendingTail = tailAfter(committed.get(index), text);
+          setInterimTranscript(pendingTail);
           // Browsers can take seconds to mark a phrase final (esp. continuous mode): a pause means it ended
           silenceTimer = setTimeout(() => {
-            const tail = tailAfter(committed.get(index), text);
             committed.set(index, text);
-            emit(tail);
-          }, SPEECH_END_MS);
+            emit(pendingTail);
+          }, endpointDelay(pendingTail));
         }
       };
 

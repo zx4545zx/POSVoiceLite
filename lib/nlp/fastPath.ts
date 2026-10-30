@@ -97,7 +97,8 @@ export function parseThaiNumber(text: string): number | null {
 export function cleanVoiceCommand(raw: string): string {
   if (!raw) return "";
 
-  let text = raw.trim();
+  // Thai numerals (๒) -> arabic (2); some engines emit them
+  let text = raw.trim().replace(/[๐-๙]/g, (d) => String(d.charCodeAt(0) - 0x0e50));
 
   // Strip leading wake phrases
   const wakePatterns = [
@@ -260,9 +261,10 @@ export function parseFastPath(
 
   // 6. Remove Item
   // "ลบกะเพราหมู", "ลบกะเพราหมูหนึ่ง", "เอากะเพราหมูออก", "ยกเลิกกะเพราหมู"
-  const removeMatch = cleaned.match(/^(?:ลบ|เอา|ยกเลิก)\s*(.+?)(?:\s*ออก)?$/);
+  // ("เอา X" without "ออก" is an order, e.g. "เอากะเพราหมูสอง", and is handled as an add below)
+  const removeMatch = cleaned.match(/^(?:(?:ลบ|ยกเลิก)\s*(.+?)(?:\s*ออก)?|เอา\s*(.+?)\s*ออก)$/);
   if (removeMatch) {
-    let target = removeMatch[1].trim();
+    let target = (removeMatch[1] ?? removeMatch[2]).trim();
     let qty: number | undefined = undefined;
 
     // Check if ends with a qty / classifier
@@ -331,6 +333,20 @@ export function parseFastPath(
   // Strip classifier at the end if present
   for (const classifier of CLASSIFIERS) {
     addCandidate = addCandidate.replace(new RegExp(`\\s*${classifier}$`), "");
+  }
+
+  // Quantity before the name, for known products only: "สองผักกระเพรา", "2 โค้ก"
+  const leadingQty = addCandidate.match(/^(\d+|หนึ่ง|สอง|สาม|สี่|ห้า|หก|เจ็ด|แปด|เก้า|สิบ)\s*(.+)$/);
+  if (leadingQty) {
+    const prod = knownProducts.find((p) => p.name === leadingQty[2].trim());
+    const qty = parseThaiNumber(leadingQty[1]);
+    if (prod && qty !== null && qty > 0) {
+      return {
+        actions: [{ tool: "addItem", args: { name: prod.name, qty } }],
+        confidence: "high",
+        matchedRule: "addItem_leadingQuantity",
+      };
+    }
   }
 
   // Several items in one utterance: "ต้มยำกุ้ง 2 ผัดกระเพรา 1"

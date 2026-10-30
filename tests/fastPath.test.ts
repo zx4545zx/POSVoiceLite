@@ -7,7 +7,7 @@ import {
   extractWakeCommand,
   parseWakeWords,
 } from "../lib/nlp/fastPath";
-import { tailAfter } from "../lib/nlp/endpointing";
+import { endpointDelay, SPEECH_END_MS, SPEECH_WAIT_MORE_MS, tailAfter } from "../lib/nlp/endpointing";
 import { Product } from "../types/pos";
 
 describe("Thai Number Parser", () => {
@@ -245,5 +245,44 @@ describe("endpointing", () => {
     assert.equal(tailAfter("น้องครับ กะเพราหมู 2", "น้องครับ กะเพราหมู 2"), "");
     assert.equal(tailAfter("น้องครับ กะเพราหมู", "น้องครับ กะเพราหมู 2").trim(), "2");
     assert.equal(tailAfter("กะเพราหมู 2", "กะเพราหมูสอง"), ""); // reworded final: don't run it twice
+  });
+});
+
+describe("quantity and ordering regressions", () => {
+  const prods = [
+    { id: "P1", name: "ผักกระเพรา", price: 60, active: true, createdAt: "", updatedAt: "" },
+    { id: "P2", name: "โค้ก", price: 20, active: true, createdAt: "", updatedAt: "" },
+  ] as Product[];
+  const add = (text: string) => parseFastPath(text, null, prods)?.actions[0];
+
+  test('"เอา X สอง" is an order, not a removal', () => {
+    assert.deepEqual(add("เอาผักกระเพราสองครับ"), { tool: "addItem", args: { name: "ผักกระเพรา", qty: 2 } });
+    assert.deepEqual(add("เอาโค้ก 1"), { tool: "addItem", args: { name: "โค้ก", qty: 1 } });
+  });
+
+  test('"เอา X ออก" and "ลบ X" still remove', () => {
+    assert.equal(add("เอาโค้กออก")?.tool, "removeItem");
+    assert.equal(add("ลบโค้ก")?.tool, "removeItem");
+    assert.equal(add("ยกเลิกโค้ก")?.tool, "removeItem");
+  });
+
+  test("Thai numerals are read as quantities", () => {
+    assert.deepEqual(add("เพิ่มผักกระเพรา ๒"), { tool: "addItem", args: { name: "ผักกระเพรา", qty: 2 } });
+    assert.equal(cleanVoiceCommand("โค้ก ๑๒"), "โค้ก 12");
+  });
+
+  test("quantity before the name works for known products", () => {
+    assert.deepEqual(add("เพิ่มสองผักกระเพรา"), { tool: "addItem", args: { name: "ผักกระเพรา", qty: 2 } });
+    assert.deepEqual(add("เพิ่ม 2 โค้ก"), { tool: "addItem", args: { name: "โค้ก", qty: 2 } });
+  });
+});
+
+describe("adaptive endpoint delay", () => {
+  test("unfinished phrases wait longer than finished ones", () => {
+    assert.equal(endpointDelay("เพิ่มผักกระเพรา"), SPEECH_WAIT_MORE_MS);
+    assert.equal(endpointDelay("น้องครับ เพิ่มผักกระเพรา"), SPEECH_WAIT_MORE_MS);
+    for (const done of ["เพิ่มผักกระเพรา 2", "เพิ่มผักกระเพราสอง", "คิดเงิน", "ล้างบิลด้วยครับ", "ผักกระเพรา 2 จาน", "60 บาท"]) {
+      assert.equal(endpointDelay(done), SPEECH_END_MS, done);
+    }
   });
 });

@@ -175,7 +175,8 @@ Your job:
 2. Ignore wake phrases like "เฮ้ Gojo", "hey gojo", "น้องโกโจ", "สวัสดี", "น้องครับ" at the start.
 3. NEVER invent prices, order IDs, or bill totals. All prices and math must come from the POS tools.
 4. If the user asks a question or information is missing, ask a very short question in Thai (under 8 words).
-5. You cannot change the order yourself. Never say that something was added, removed or done; only the POS tools do that, and the POS reports the result.
+5. Always pass the quantity the cashier said as qty (digits, Thai numerals like ๒, or Thai words like สอง); use 1 only when no number was said.
+6. You cannot change the order yourself. Never say that something was added, removed or done; only the POS tools do that, and the POS reports the result.
 ${pendingContext ? `\nActive Context: ${pendingContext}` : ""}
 Known products in menu: ${productListContext || "ยังไม่มีรายการที่บันทึก"}`;
 
