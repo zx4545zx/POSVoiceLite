@@ -37,6 +37,9 @@ export interface SpeechResultLike {
 /**
  * Merge every not-yet-sent result of the session into one utterance. Browsers split a sentence into
  * several results at short pauses ("เพิ่มผัดกระเพรา" | "2"); acting on each piece separately loses the quantity.
+ * Some browsers instead make each new result repeat the previous text plus the new words
+ * (["ข้าวผัด", "ข้าวผัด 1"]): such a result replaces what we have rather than being appended
+ * (appending gave "ข้าวผัดข้าวผัด 1").
  */
 export function collectUnsent(results: SpeechResultLike[], sent: Map<number, string>) {
   let tail = "";
@@ -44,7 +47,10 @@ export function collectUnsent(results: SpeechResultLike[], sent: Map<number, str
   results.forEach((r, i) => {
     if (!r) return;
     snapshot.push([i, r.text]);
-    tail += tailAfter(sent.get(i), r.text);
+    const piece = tailAfter(sent.get(i), r.text);
+    if (!piece) return;
+    if (piece.startsWith(tail)) tail = piece;
+    else if (!tail.endsWith(piece)) tail += piece;
   });
   return { tail, snapshot, lastIsFinal: results.length > 0 && !!results[results.length - 1]?.isFinal };
 }

@@ -337,3 +337,37 @@ describe("duplicate speech deliveries", () => {
     assert.equal(dedupeUtterance("  ", prev, 1500), "");
   });
 });
+
+describe("cumulative speech results", () => {
+  test("a result that repeats the previous text replaces it instead of doubling the name", () => {
+    const { tail } = collectUnsent(
+      [{ text: "ข้าวผัดต้มยำกุ้ง", isFinal: true }, { text: "ข้าวผัดต้มยำกุ้ง 1", isFinal: false }],
+      new Map()
+    );
+    assert.equal(tail, "ข้าวผัดต้มยำกุ้ง 1");
+  });
+
+  test("identical repeated results collapse to one", () => {
+    const { tail } = collectUnsent(
+      [{ text: "โค้ก 2", isFinal: true }, { text: "โค้ก 2", isFinal: true }],
+      new Map()
+    );
+    assert.equal(tail, "โค้ก 2");
+  });
+
+  test("genuinely separate pieces are still joined", () => {
+    const { tail } = collectUnsent(
+      [{ text: "เพิ่มผัดกระเพรา", isFinal: true }, { text: "2", isFinal: false }],
+      new Map()
+    );
+    assert.equal(tail, "เพิ่มผัดกระเพรา2");
+  });
+
+  test("three cumulative results end up as the last, longest one", () => {
+    const { tail } = collectUnsent(
+      [{ text: "น้องครับ", isFinal: true }, { text: "น้องครับ กะเพราหมู", isFinal: true }, { text: "น้องครับ กะเพราหมู 2", isFinal: false }],
+      new Map()
+    );
+    assert.equal(tail, "น้องครับ กะเพราหมู 2");
+  });
+});
