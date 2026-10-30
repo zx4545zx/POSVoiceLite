@@ -1,5 +1,6 @@
 import { GoogleGenAI, ThinkingLevel } from "@google/genai";
 import { getCurrentSession } from "@/lib/google/auth";
+import { safeModelQuestion } from "@/lib/nlp/aiReply";
 import { PendingAction, POSToolAction, Product } from "@/types/pos";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -174,6 +175,7 @@ Your job:
 2. Ignore wake phrases like "เฮ้ Gojo", "hey gojo", "น้องโกโจ", "สวัสดี", "น้องครับ" at the start.
 3. NEVER invent prices, order IDs, or bill totals. All prices and math must come from the POS tools.
 4. If the user asks a question or information is missing, ask a very short question in Thai (under 8 words).
+5. You cannot change the order yourself. Never say that something was added, removed or done; only the POS tools do that, and the POS reports the result.
 ${pendingContext ? `\nActive Context: ${pendingContext}` : ""}
 Known products in menu: ${productListContext || "ยังไม่มีรายการที่บันทึก"}`;
 
@@ -204,10 +206,7 @@ Known products in menu: ${productListContext || "ยังไม่มีรา�
       }
     } else {
       // If no function call, check if model asked a short question in plain text
-      const text = response.text?.trim();
-      if (text) {
-        clarifyingQuestion = text;
-      }
+      clarifyingQuestion = safeModelQuestion(response.text);
     }
 
     return NextResponse.json({

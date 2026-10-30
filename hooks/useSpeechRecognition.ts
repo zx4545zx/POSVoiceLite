@@ -82,9 +82,11 @@ export function useSpeechRecognition({
 
     if (!SpeechRecognitionClass) return;
 
+    let disposed = false;
     try {
       const recognition = new SpeechRecognitionClass();
-      recognition.continuous = false;
+      // Hands-free: one long session instead of reopening the mic after every phrase (gaps lose speech)
+      recognition.continuous = alwaysOnRef.current;
       recognition.interimResults = true;
       recognition.lang = lang;
 
@@ -96,15 +98,16 @@ export function useSpeechRecognition({
       recognition.onend = () => {
         setIsListening(false);
         // Browsers end recognition after each phrase/silence; reopen the mic while hands-free is on
-        if (alwaysOnRef.current) {
+        if (alwaysOnRef.current && !disposed) {
           setTimeout(() => {
-            if (!alwaysOnRef.current) return;
+            if (!alwaysOnRef.current || disposed) return;
             try {
+              recognition.continuous = true;
               recognition.start();
             } catch {
               // already started
             }
-          }, 300);
+          }, 100);
         }
       };
 
@@ -150,6 +153,7 @@ export function useSpeechRecognition({
     }
 
     return () => {
+      disposed = true;
       try {
         recognitionRef.current?.abort();
       } catch {
@@ -184,6 +188,7 @@ export function useSpeechRecognition({
     const rec = recognitionRef.current;
     if (!rec) return;
     try {
+      rec.continuous = alwaysOn;
       if (alwaysOn) rec.start();
       else rec.abort();
     } catch {

@@ -5,7 +5,7 @@ import { Header } from "@/components/Header";
 import { OrderList } from "@/components/OrderList";
 import { OrderSummary } from "@/components/OrderSummary";
 import { BottomControls } from "@/components/BottomControls";
-import { WakeWordToggle } from "@/components/WakeWordToggle";
+import { WakeWordBanner } from "@/components/WakeWordToggle";
 import { VoiceFeedbackBar } from "@/components/VoiceFeedbackBar";
 import { PendingPricePrompt } from "@/components/PendingPricePrompt";
 import { SettingsModal } from "@/components/SettingsModal";
@@ -113,9 +113,9 @@ export default function Home() {
   }, [loadSession]);
 
   // Core Command Dispatcher
-  const handleProcessCommand = useCallback(
+  const processCommand = useCallback(
     async (rawCommand: string) => {
-      if (!rawCommand || isProcessing) return;
+      if (!rawCommand) return;
       setIsProcessing(true);
 
       const currentCart = cartRef.current;
@@ -236,7 +236,29 @@ export default function Home() {
         setIsProcessing(false);
       }
     },
-    [isProcessing, speak]
+    [speak]
+  );
+
+  // Commands spoken while another is still being processed (e.g. an AI round trip) are queued, not dropped
+  const commandQueueRef = useRef<string[]>([]);
+  const drainingRef = useRef(false);
+  const handleProcessCommand = useCallback(
+    async (rawCommand: string) => {
+      if (!rawCommand) return;
+      commandQueueRef.current.push(rawCommand);
+      if (drainingRef.current) return;
+      drainingRef.current = true;
+      try {
+        while (commandQueueRef.current.length > 0) {
+          await processCommand(commandQueueRef.current.shift()!);
+          // Let React commit the new cart/products so the refs processCommand reads are current
+          await new Promise((resolve) => setTimeout(resolve, 80));
+        }
+      } finally {
+        drainingRef.current = false;
+      }
+    },
+    [processCommand]
   );
 
   // Hands-free wake word mode (off by default; see WakeWordToggle for the warnings)
@@ -267,7 +289,11 @@ export default function Home() {
       if (isSpeaking()) return;
       const afterWake = extractWakeCommand(finalText, wakeWords);
       const armed = Date.now() < armedUntilRef.current;
-      if (afterWake === null && !armed) return; // ordinary chatter
+      if (afterWake === null && !armed) {
+        // Ordinary chatter: ignore, but say so, otherwise a misheard wake word looks like the app is broken
+        setLastResponseText(`ไม่พบคำปลุก พูด “${wakeWords[0]}…” นำหน้าคำสั่ง`);
+        return;
+      }
       const command = afterWake ?? finalText;
       if (!command) {
         armedUntilRef.current = Date.now() + 8000;
@@ -500,7 +526,7 @@ export default function Home() {
         isProcessing={isProcessing}
       />
 
-      <WakeWordToggle enabled={wakeMode} isSupported={isSupported} wakeWords={wakeWords} onChange={setWakeMode} />
+      {wakeMode && <WakeWordBanner wakeWords={wakeWords} onTurnOff={() => setWakeMode(false)} />}
 
       {/* Bottom Controls (Clear, Large Mic Push-to-Talk, Checkout) */}
       <BottomControls
@@ -529,6 +555,9 @@ export default function Home() {
         products={products}
         onUpdateProduct={handleUpdateProduct}
         onAddProduct={handleAddProduct}
+        wakeMode={wakeMode}
+        wakeModeSupported={isSupported}
+        onWakeModeChange={setWakeMode}
       />
 
       {/* Checkout Success Modal */}
