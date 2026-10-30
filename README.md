@@ -11,7 +11,6 @@ Optimized for **iPhone Safari**, **Android Chrome**, and **Mobile PWA**.
 - **Push-to-Talk Voice POS**: Tap the microphone, speak natural Thai commands, and see the bill update immediately.
 - **Zero-AI Audio Latency**: Speech-to-Text and Text-to-Speech run 100% on-device using standard **Web Speech API** (`SpeechRecognition` & `speechSynthesis`). No external audio API delay or costs.
 - **AI Conversation & Tool Calling**: Chat in Thai or use natural language for POS commands. The AI receives the available POS tool descriptions to interpret requests; the POS application remains the source of truth for order changes and totals.
-- **Fast Path Local Parser**: Common Thai commands like "คิดเงิน", "ล้างบิล", "ลด 10 บาท", and known products are parsed locally in < 1ms without sending requests to Gemini.
 - **Zero-Config Google Sheets**: User simply logs in with Google OAuth. The app automatically creates a `POS Voice Lite` Google Spreadsheet with `Products`, `Orders`, and `Settings` sheets on Google Drive with minimal `drive.file` scope.
 - **Missing Product Price Flow**: If a customer orders an item not yet in the menu, POS asks: *"กะเพราหมู กี่บาท?"*. When the cashier says *"60 บาท"*, the price is saved to the Google Sheet and added to the cart automatically.
 
@@ -50,7 +49,7 @@ GEMINI_MODEL=gemini-3.1-flash-lite
 SESSION_SECRET=your-random-32-char-secret
 ```
 
-> **Note**: If `GOOGLE_CLIENT_ID` is left empty, the app provides a **Demo Mode** button that allows instant offline testing with full voice POS functionality.
+> **Note**: If `GOOGLE_CLIENT_ID` is left empty, the app provides a **Demo Mode** button. Voice commands still require an internet connection and `GEMINI_API_KEY`.
 
 ### 3. Run Development Server
 ```bash

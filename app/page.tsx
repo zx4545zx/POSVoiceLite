@@ -31,11 +31,8 @@ import {
   executePOSTool,
   initialCartState,
 } from "@/lib/pos/orderEngine";
-import { DEFAULT_WAKE_WORDS, extractWakeCommand, parseFastPath } from "@/lib/nlp/fastPath";
+import { DEFAULT_WAKE_WORDS, extractWakeCommand } from "@/lib/nlp/fastPath";
 import { appendExchange, ConversationTurn } from "@/lib/nlp/conversation";
-
-/** Speech arriving this soon after a price question is the tail of the order, not the answer */
-const PRICE_ANSWER_GRACE_MS = 1500;
 
 export default function Home() {
   // Session & Auth state
@@ -69,17 +66,10 @@ export default function Home() {
   const pendingActionRef = useRef(pendingAction);
   const historyRef = useRef<ConversationTurn[]>([]);
   const billVersionRef = useRef(0);
-  const pendingSinceRef = useRef(0); // when the current price question appeared
-  const pendingNameRef = useRef<string | null>(null);
   useEffect(() => {
     cartRef.current = cart;
     productsRef.current = products;
     pendingActionRef.current = pendingAction;
-    const pendingName = pendingAction?.productName ?? null;
-    if (pendingName !== pendingNameRef.current) {
-      pendingNameRef.current = pendingName;
-      if (pendingName) pendingSinceRef.current = Date.now();
-    }
   });
 
   // Text to Speech
@@ -131,8 +121,6 @@ export default function Home() {
   const processCommand = useCallback(
     async (rawCommand: string) => {
       if (!rawCommand) return;
-      // Right after "X กี่บาท?" speech is still the tail of the order, not an answer (the user hasn't heard the question yet)
-      if (pendingActionRef.current && Date.now() - pendingSinceRef.current < PRICE_ANSWER_GRACE_MS) return;
       askedQuestionRef.current = false;
       setIsProcessing(true);
       setProcessingCommand(rawCommand);
@@ -143,66 +131,6 @@ export default function Home() {
       const billVersion = billVersionRef.current;
 
       try {
-        // Step 1: Fast Path Check (Regex / Local Thai NLP)
-        const fastResult = parseFastPath(
-          rawCommand,
-          currentPending,
-          currentProducts
-        );
-
-        if (fastResult?.ignore) return;
-
-        if (fastResult && fastResult.actions.length > 0) {
-          // Fast Path Matched! Execute POS Tool actions locally
-          const result = executeMultiplePOSTools(
-            fastResult.actions,
-            currentCart,
-            currentProducts,
-            currentPending
-          );
-
-          if (result.completedOrder || result.clearedOrder) {
-            historyRef.current = [];
-            billVersionRef.current++;
-          } else {
-            historyRef.current = appendExchange(historyRef.current, rawCommand, result.responseText);
-          }
-
-          // Update UI state immediately!
-          setCart(result.cart);
-          setProducts(result.products);
-          setPendingAction(result.pendingAction);
-          setLastResponseText(result.responseText);
-
-          if (result.completedOrder) {
-            setCompletedOrder(result.completedOrder);
-            // Asynchronously append to Google Sheets
-            fetch("/api/orders", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(result.completedOrder),
-            }).catch((err) => console.error("Failed to append order:", err));
-          }
-
-          if (result.needsProductSave) {
-            // Asynchronously save/update product in Google Sheets
-            fetch("/api/products", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(result.needsProductSave),
-            }).catch((err) => console.error("Failed to save product:", err));
-          }
-
-          // Browser Text-to-Speech responds
-          if (result.speak && result.responseText) {
-            speak(result.responseText);
-          }
-
-          return;
-        }
-
-        // Step 2: Uncertain -> Call Gemini AI Tool Calling endpoint (slow, so say "one moment" first;
-        // the bar shows "กำลังคิด" while we wait and the result replaces it)
         speak("แป๊บนะ");
         const aiRes = await fetch("/api/ai/command", {
           method: "POST",
@@ -215,9 +143,13 @@ export default function Home() {
           }),
         });
 
-        if (aiRes.ok) {
-          const aiData = await aiRes.json();
-          if (billVersion !== billVersionRef.current) return;
+        const aiData = await aiRes.json();
+        if (billVersion !== billVersionRef.current) return;
+        if (!aiRes.ok || aiData.error) {
+          const message = aiData.error || "ระบบ AI ขัดข้อง ลองใหม่อีกครั้ง";
+          setLastResponseText(message);
+          speak(message);
+        } else {
 
           if (aiData.actions && aiData.actions.length > 0) {
             const result = executeMultiplePOSTools(

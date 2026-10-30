@@ -1,6 +1,6 @@
 import test, { describe } from "node:test";
 import assert from "node:assert/strict";
-import { parseFastPath } from "../lib/nlp/fastPath";
+import { allowedAiActions } from "../lib/nlp/aiReply";
 import {
   executeMultiplePOSTools,
   executePOSTool,
@@ -23,21 +23,9 @@ describe("Target v1 Primary Acceptance Test", () => {
   });
 
   test("Step 5-6: User says 'กะเพราหมูสอง' -> system asks 'กะเพราหมู กี่บาท?'", () => {
-    // Input speech: "กะเพราหมูสอง"
-    const inputSpeech = "กะเพราหมูสอง";
-
-    // Fast path checks intent
-    const fastPathResult = parseFastPath(inputSpeech, pendingAction, products);
-    assert.ok(fastPathResult, "Fast path recognized item and quantity");
-    assert.equal(fastPathResult.actions[0].tool, "addItem");
-    if (fastPathResult.actions[0].tool === "addItem") {
-      assert.equal(fastPathResult.actions[0].args.name, "กะเพราหมู");
-      assert.equal(fastPathResult.actions[0].args.qty, 2);
-    }
-
-    // POS Engine executes addItem
+    // Simulated Gemini tool call; model interpretation is not exercised by this test.
     const result = executePOSTool(
-      fastPathResult.actions[0],
+      { tool: "addItem", args: { name: "กะเพราหมู", qty: 2 } },
       cart,
       products,
       pendingAction
@@ -62,17 +50,12 @@ describe("Target v1 Primary Acceptance Test", () => {
     assert.ok(pendingAction);
     assert.equal(lastSpokenText, "กะเพราหมู กี่บาท?");
 
-    // User responds with price
-    const inputSpeech = "60 บาท";
-    const fastPathResult = parseFastPath(inputSpeech, pendingAction, products);
-    assert.ok(fastPathResult, "Fast path resolved price response");
-    assert.equal(fastPathResult.actions.length, 2);
-    assert.equal(fastPathResult.actions[0].tool, "setProductPrice");
-    assert.equal(fastPathResult.actions[1].tool, "addItem");
-
-    // Execute actions
+    const actions = allowedAiActions([
+      { tool: "setProductPrice", args: { name: "กะเพราหมู", price: 60 } },
+      { tool: "addItem", args: { name: "กะเพราหมู", qty: 2 } },
+    ], "60 บาท", pendingAction);
     const result = executeMultiplePOSTools(
-      fastPathResult.actions,
+      actions,
       cart,
       products,
       pendingAction
@@ -105,14 +88,8 @@ describe("Target v1 Primary Acceptance Test", () => {
   });
 
   test("Step 9-10: User says 'คิดเงิน' -> checkout order total 120 and ready for Google Sheets", () => {
-    // User says "คิดเงิน"
-    const inputSpeech = "คิดเงิน";
-    const fastPathResult = parseFastPath(inputSpeech, pendingAction, products);
-    assert.ok(fastPathResult);
-    assert.equal(fastPathResult.actions[0].tool, "checkout");
-
     const result = executePOSTool(
-      fastPathResult.actions[0],
+      { tool: "checkout" },
       cart,
       products,
       pendingAction
@@ -139,13 +116,8 @@ describe("Target v1 Primary Acceptance Test", () => {
   });
 
   test("Subsequent order: 'กะเพราหมูหนึ่ง' immediately adds item because price is now known", () => {
-    // User places a new order
-    const inputSpeech = "กะเพราหมูหนึ่ง";
-    const fastPathResult = parseFastPath(inputSpeech, null, products);
-    assert.ok(fastPathResult);
-
     const result = executePOSTool(
-      fastPathResult.actions[0],
+      { tool: "addItem", args: { name: "กะเพราหมู", qty: 1 } },
       cart,
       products,
       null

@@ -49,6 +49,12 @@ describe("allowedAiActions: the model may not invent prices", () => {
     assert.equal(allowedAiActions([set("ผัดไทย", 60)], "60", pending).length, 1);
   });
 
+  test("requires a price cue when a price answer repeats the ordered quantity", () => {
+    const pending = { type: "WAITING_PRODUCT_PRICE" as const, productName: "ผัดไทย", qty: 2 };
+    assert.equal(allowedAiActions([set("ผัดไทย", 2)], "2", pending).length, 0);
+    assert.equal(allowedAiActions([set("ผัดไทย", 2)], "2 บาท", pending).length, 1);
+  });
+
   test("a price for a different product than the one being asked is dropped", () => {
     const pending = { type: "WAITING_PRODUCT_PRICE" as const, productName: "ผัดไทย", qty: 2 };
     assert.equal(allowedAiActions([set("โค้ก", 60)], "60", pending).length, 0);

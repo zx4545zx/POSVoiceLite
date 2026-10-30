@@ -40,6 +40,8 @@ export function allowedAiActions(
     if (typeof price !== "number" || !priceWasSpoken(message, price)) return false;
     const answeringQuestion =
       pending?.type === "WAITING_PRODUCT_PRICE" && pending.productName.trim() === String(name).trim();
+    // A repeated quantity may be the tail of the order, not a price answer.
+    if (answeringQuestion && price === pending.qty && !PRICE_CUE.test(message)) return false;
     return answeringQuestion || PRICE_CUE.test(message);
   });
 }
