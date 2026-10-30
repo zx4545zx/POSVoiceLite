@@ -116,6 +116,7 @@ export default function Home() {
   const processCommand = useCallback(
     async (rawCommand: string) => {
       if (!rawCommand) return;
+      askedQuestionRef.current = false;
       setIsProcessing(true);
 
       const currentCart = cartRef.current;
@@ -222,6 +223,7 @@ export default function Home() {
             }
           } else if (aiData.question) {
             // Gemini asked a short clarifying question
+            askedQuestionRef.current = true;
             setLastResponseText(aiData.question);
             speak(aiData.question);
           } else {
@@ -239,6 +241,43 @@ export default function Home() {
     [speak]
   );
 
+  // Hands-free wake word mode (off by default; the switch and warnings live in Settings).
+  // Two states: background (mic open, UI quiet, only a wake word counts) and a "session" that starts at the
+  // wake word and lasts until the task is done (e.g. while waiting for a price answer), then goes back to background.
+  const [wakeMode, setWakeMode] = useState(false);
+  const [wakeActive, setWakeActive] = useState(false);
+  const [lastHeard, setLastHeard] = useState("");
+  const wakeWords = settings.wakeWords?.length ? settings.wakeWords : DEFAULT_WAKE_WORDS;
+  const wakeModeRef = useRef(false);
+  const sessionUntilRef = useRef(0);
+  const sessionTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const askedQuestionRef = useRef(false);
+  useEffect(() => {
+    wakeModeRef.current = wakeMode;
+  });
+
+  const endSession = useCallback(() => {
+    clearTimeout(sessionTimerRef.current);
+    sessionUntilRef.current = 0; // stop accepting wake-less speech immediately...
+    sessionTimerRef.current = setTimeout(() => setWakeActive(false), 1200); // ...but let the UI show the result briefly
+  }, []);
+  const startSession = useCallback((ms: number) => {
+    clearTimeout(sessionTimerRef.current);
+    sessionUntilRef.current = Date.now() + ms;
+    setWakeActive(true);
+    sessionTimerRef.current = setTimeout(() => {
+      sessionUntilRef.current = 0;
+      setWakeActive(false);
+    }, ms);
+  }, []);
+  const changeWakeMode = useCallback(
+    (enabled: boolean) => {
+      setWakeMode(enabled);
+      if (!enabled) endSession();
+    },
+    [endSession]
+  );
+
   // Commands spoken while another is still being processed (e.g. an AI round trip) are queued, not dropped
   const commandQueueRef = useRef<string[]>([]);
   const drainingRef = useRef(false);
@@ -254,17 +293,17 @@ export default function Home() {
           // Let React commit the new cart/products so the refs processCommand reads are current
           await new Promise((resolve) => setTimeout(resolve, 80));
         }
+        // Task finished: keep listening only if it is waiting on the user (price answer / AI question)
+        if (wakeModeRef.current) {
+          if (pendingActionRef.current || askedQuestionRef.current) startSession(15000);
+          else endSession();
+        }
       } finally {
         drainingRef.current = false;
       }
     },
-    [processCommand]
+    [processCommand, startSession, endSession]
   );
-
-  // Hands-free wake word mode (off by default; see WakeWordToggle for the warnings)
-  const [wakeMode, setWakeMode] = useState(false);
-  const wakeWords = settings.wakeWords?.length ? settings.wakeWords : DEFAULT_WAKE_WORDS;
-  const armedUntilRef = useRef(0); // after a bare wake word, accept the next phrase without one
 
   // Web Speech Recognition
   const {
@@ -278,7 +317,7 @@ export default function Home() {
     lang: settings.language || "th-TH",
     alwaysOn: wakeMode,
     onError: (err) => {
-      if (err === "not-allowed" || err === "service-not-allowed") setWakeMode(false);
+      if (err === "not-allowed" || err === "service-not-allowed") changeWakeMode(false);
     },
     onResult: (finalText) => {
       if (!wakeMode) {
@@ -288,28 +327,28 @@ export default function Home() {
       // Ignore our own TTS being picked up by the mic
       if (isSpeaking()) return;
       const afterWake = extractWakeCommand(finalText, wakeWords);
-      const armed = Date.now() < armedUntilRef.current;
-      if (afterWake === null && !armed) {
-        // Ordinary chatter: ignore, but say so, otherwise a misheard wake word looks like the app is broken
-        setLastResponseText(`ไม่พบคำปลุก พูด “${wakeWords[0]}…” นำหน้าคำสั่ง`);
+      const inSession = Date.now() < sessionUntilRef.current;
+      if (afterWake === null && !inSession) {
+        // Background: stay quiet, just remember what was heard so a misheard wake word is diagnosable
+        setLastHeard(finalText);
         return;
       }
       const command = afterWake ?? finalText;
       if (!command) {
-        armedUntilRef.current = Date.now() + 8000;
+        startSession(10000);
         setLastResponseText("ครับ?");
         speak("ครับ");
         return;
       }
-      armedUntilRef.current = 0;
+      startSession(20000); // covers processing; the queue drain decides whether to continue or go back to background
       handleProcessCommand(command);
     },
   });
 
-  // In hands-free mode the mic is already open, so pressing it just arms the next phrase
+  // In hands-free mode the mic is already open, so pressing it just starts a session (same as saying the wake word)
   const handleMicToggle = () => {
     if (wakeMode) {
-      armedUntilRef.current = Date.now() + 8000;
+      startSession(10000);
       setLastResponseText("ครับ?");
     } else {
       toggleListening();
@@ -506,8 +545,8 @@ export default function Home() {
 
         {/* Live speech recognition and TTS feedback bar */}
         <VoiceFeedbackBar
-          transcript={transcript}
-          interimTranscript={interimTranscript}
+          transcript={wakeMode && !wakeActive ? "" : transcript}
+          interimTranscript={wakeMode && !wakeActive ? "" : interimTranscript}
           responseText={lastResponseText}
           isProcessing={isProcessing}
           errorMessage={errorMessage}
@@ -526,13 +565,13 @@ export default function Home() {
         isProcessing={isProcessing}
       />
 
-      {wakeMode && <WakeWordBanner wakeWords={wakeWords} onTurnOff={() => setWakeMode(false)} />}
+      {wakeMode && <WakeWordBanner wakeWords={wakeWords} lastHeard={lastHeard} onTurnOff={() => changeWakeMode(false)} />}
 
       {/* Bottom Controls (Clear, Large Mic Push-to-Talk, Checkout) */}
       <BottomControls
         itemCount={cart.items.length}
         total={cart.total}
-        isListening={isListening}
+        isListening={wakeMode ? wakeActive : isListening}
         isSupported={isSupported}
         onToggleListening={handleMicToggle}
         onClearOrder={handleClearOrder}
@@ -557,7 +596,7 @@ export default function Home() {
         onAddProduct={handleAddProduct}
         wakeMode={wakeMode}
         wakeModeSupported={isSupported}
-        onWakeModeChange={setWakeMode}
+        onWakeModeChange={changeWakeMode}
       />
 
       {/* Checkout Success Modal */}

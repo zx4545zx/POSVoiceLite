@@ -6,9 +6,11 @@ import { AlertTriangle, Ear } from "lucide-react";
 /** Always-visible reminder on the sales screen while the mic is held open */
 export function WakeWordBanner({
   wakeWords,
+  lastHeard,
   onTurnOff,
 }: {
   wakeWords: string[];
+  lastHeard: string;
   onTurnOff: () => void;
 }) {
   return (
@@ -17,6 +19,7 @@ export function WakeWordBanner({
       <p className="flex-1 min-w-0">
         <span className="font-bold">กำลังฟังคำเรียก</span> พูด {wakeWords.slice(0, 3).map((w) => `“${w}…”`).join(" หรือ ")} นำหน้าคำสั่ง
         ไมค์เปิดค้างและกินแบตเตอรี่ ตรวจยอดก่อนคิดเงินทุกครั้ง
+        {lastHeard && <span className="block truncate text-amber-700/80">ได้ยินล่าสุด: “{lastHeard}”</span>}
       </p>
       <button onClick={onTurnOff} className="shrink-0 font-bold text-amber-800 underline">
         ปิด
