@@ -257,10 +257,11 @@ export default function Home() {
     wakeModeRef.current = wakeMode;
   });
 
-  const endSession = useCallback(() => {
+  const endSession = useCallback((immediate = false) => {
     clearTimeout(sessionTimerRef.current);
     sessionUntilRef.current = 0; // stop accepting wake-less speech immediately...
-    sessionTimerRef.current = setTimeout(() => setWakeActive(false), 1200); // ...but let the UI show the result briefly
+    if (immediate) setWakeActive(false);
+    else sessionTimerRef.current = setTimeout(() => setWakeActive(false), 1200); // ...but let the UI show the result briefly
   }, []);
   const startSession = useCallback((ms: number) => {
     clearTimeout(sessionTimerRef.current);
@@ -347,11 +348,16 @@ export default function Home() {
     },
   });
 
-  // In hands-free mode the mic is already open, so pressing it just starts a session (same as saying the wake word)
+  // In hands-free mode the mic is already open: tapping starts a session (same as the wake word) or, while one
+  // is running (red mic), ends it. Turning hands-free off entirely is the banner's "ปิด".
   const handleMicToggle = () => {
     if (wakeMode) {
-      startSession(10000);
-      setLastResponseText("ครับ?");
+      if (wakeActive) {
+        endSession(true);
+      } else {
+        startSession(10000);
+        setLastResponseText("ครับ?");
+      }
     } else {
       toggleListening();
     }
