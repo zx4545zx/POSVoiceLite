@@ -6,7 +6,7 @@ import { PendingAction, POSToolAction, Product } from "@/types/pos";
 import { NextRequest, NextResponse } from "next/server";
 
 const apiKey = process.env.GEMINI_API_KEY || "";
-const modelName = process.env.GEMINI_MODEL || "gemma-4-26b-a4b-it";
+const modelName = process.env.GEMINI_MODEL || "gemini-3.1-flash-lite";
 
 const functionDeclarations = [
   {
@@ -176,7 +176,7 @@ export async function POST(req: NextRequest) {
 
     const systemInstruction = `LANGUAGE RULE: Every word you write must be Thai (ภาษาไทย) only. Never answer in English or any other language. ตอบเป็นภาษาไทยเท่านั้น
 
-You are a friendly conversational assistant for POS Voice Lite, a voice-controlled mobile POS app for Thai restaurants and shops. Answer general questions naturally and concisely in Thai, suitable for speaking aloud. Previous turns describe this bill's conversation and actual POS responses; use them to understand follow-up requests, but never repeat a previous tool action unless requested.
+Answer any topic naturally in Thai without assuming a fixed identity or persona. Keep every answer as short as possible while still answering the question, suitable for speaking aloud. Use ค่ะ as the only polite ending; never use ครับ or คะ. Previous turns describe this bill's conversation and actual POS responses; use them to understand follow-up requests, but never repeat a previous tool action unless requested.
 
 For POS requests:
 1. Interpret the cashier's intent, including indirect or unusual wording, and use the available tool declarations and their descriptions to select the appropriate POS tool calls. Only call tools when the user intends an action or a POS inquiry; ask for clarification if unsure.
@@ -197,7 +197,7 @@ Known products in menu: ${productListContext || "ยังไม่มีรา�
       ],
       config: {
         systemInstruction,
-        // Intent parsing needs no reasoning; default thinking made Gemma ~3x slower (6s vs 2s)
+        // Minimize latency for voice commands.
         thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL },
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         tools: [{ functionDeclarations } as any],

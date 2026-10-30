@@ -46,7 +46,7 @@ Fill in:
 GOOGLE_CLIENT_ID=your-google-oauth-client-id
 GOOGLE_CLIENT_SECRET=your-google-oauth-client-secret
 GEMINI_API_KEY=your-gemini-api-key
-GEMINI_MODEL=gemma-4-26b-a4b-it
+GEMINI_MODEL=gemini-3.1-flash-lite
 SESSION_SECRET=your-random-32-char-secret
 ```
 

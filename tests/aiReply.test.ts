@@ -15,6 +15,10 @@ describe("safeModelReply", () => {
     }
   });
 
+  test("uses ค่ะ instead of ครับ", () => {
+    assert.equal(safeModelReply("สวัสดีครับ"), "สวัสดีค่ะ");
+  });
+
   test("drops empty input", () => {
     assert.equal(safeModelReply("   "), undefined);
     assert.equal(safeModelReply(undefined), undefined);
