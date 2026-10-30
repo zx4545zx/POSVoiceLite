@@ -149,6 +149,31 @@ export async function fetchProductsFromSheet(accessToken: string, spreadsheetId:
 }
 
 /**
+ * Fetches all orders from the Orders sheet
+ */
+export async function fetchOrdersFromSheet(accessToken: string, spreadsheetId: string): Promise<Order[] | null> {
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/Orders!A2:F`;
+  const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+
+  if (!res.ok) {
+    console.error("Failed to fetch orders:", res.status, await res.text());
+    return null;
+  }
+
+  const rows: string[][] = (await res.json()).values || [];
+  return rows
+    .map((row) => ({
+      orderId: row[0] || "",
+      datetime: row[1] || "",
+      items: row[2] || "",
+      subtotal: parseFloat(row[3]) || 0,
+      discount: parseFloat(row[4]) || 0,
+      total: parseFloat(row[5]) || 0,
+    }))
+    .filter((o) => o.orderId);
+}
+
+/**
  * Appends a completed order to the Orders sheet
  */
 export async function appendOrderToSheet(accessToken: string, spreadsheetId: string, order: Order): Promise<boolean> {

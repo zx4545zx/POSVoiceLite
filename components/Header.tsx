@@ -1,6 +1,7 @@
 "use client";
 
-import { Settings as SettingsIcon, ExternalLink, Cloud, CloudOff } from "lucide-react";
+import Link from "next/link";
+import { Settings as SettingsIcon, ExternalLink, Cloud, CloudOff, BarChart3 } from "lucide-react";
 import { UserSession } from "@/types/pos";
 
 interface HeaderProps {
@@ -50,6 +51,13 @@ export function Header({ shopName, session, onOpenSettings }: HeaderProps) {
       </div>
 
       <div className="flex items-center space-x-2">
+        <Link
+          href="/reports"
+          className="p-2 rounded-full text-gray-600 hover:bg-gray-100 active:bg-gray-200 transition-colors"
+          aria-label="สรุปยอดขาย"
+        >
+          <BarChart3 className="w-5 h-5" />
+        </Link>
         <button
           onClick={onOpenSettings}
           className="p-2 rounded-full text-gray-600 hover:bg-gray-100 active:bg-gray-200 transition-colors"

@@ -27,6 +27,7 @@ Backend (`app/api/*`, all Route Handlers):
 - Auth: `lib/google/auth.ts` does Google OAuth and stores the session (user, tokens, `spreadsheetId`) as a signed `jose` JWT cookie `pos_session`. `auth/demo` creates a session with `isMock: true`.
 - Storage: `lib/google/sheets.ts` calls the Sheets/Drive REST API (`drive.file` scope). It auto-creates a `POS Voice Lite` spreadsheet via `api/sheet/init`. Columns are positional ranges, so keep them in sync with the header rows in `sheets.ts`: `Products!A:F` (id, name, price, active, createdAt, updatedAt), `Orders!A:F` (orderId, datetime, items, subtotal, discount, total), `Settings!A2:C2` (shopName, voiceEnabled, language).
 - Mock mode: when `session.isMock`, the `orders`, `products` and `settings` routes return early with `isMock: true` and persist nothing. Keep new routes consistent with that branch.
+- Reports: `app/reports/page.tsx` fetches `GET /api/orders` (reads `Orders!A2:F`) and aggregates client-side with the pure `lib/pos/reports.ts` (Asia/Bangkok day boundaries; item lines are parsed back out of the `Order.items` summary string, so changing `formatOrderItemsSummary` breaks top-items).
 - Imports use the `@/*` alias (maps to the repo root). Tests use relative imports.
 
 ## Production notes

@@ -1,7 +1,30 @@
 import { getCurrentSession, getValidAccessToken } from "@/lib/google/auth";
-import { appendOrderToSheet } from "@/lib/google/sheets";
+import { appendOrderToSheet, fetchOrdersFromSheet } from "@/lib/google/sheets";
 import { Order } from "@/types/pos";
 import { NextRequest, NextResponse } from "next/server";
+
+export async function GET() {
+  const session = await getCurrentSession();
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Demo mode never persists orders
+  if (session.isMock) {
+    return NextResponse.json({ orders: [], isMock: true });
+  }
+
+  const token = await getValidAccessToken(session);
+  if (!token || !session.spreadsheetId) {
+    return NextResponse.json({ error: "No Google Sheets connection" }, { status: 400 });
+  }
+
+  const orders = await fetchOrdersFromSheet(token, session.spreadsheetId);
+  if (!orders) {
+    return NextResponse.json({ error: "Failed to read orders" }, { status: 502 });
+  }
+  return NextResponse.json({ orders });
+}
 
 export async function POST(req: NextRequest) {
   const session = await getCurrentSession();
